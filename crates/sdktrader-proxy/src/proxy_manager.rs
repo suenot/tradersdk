@@ -285,20 +285,19 @@ mod tests {
             false,
         );
 
-        // Use both proxies so all are on cooldown.
-        let first = pm.get_next_proxy().unwrap();
-        // Manually advance the second proxy's timestamp so we know which is "oldest".
-        let second = pm
-            .proxies
-            .iter()
-            .find(|p| p.as_str() != first)
-            .unwrap()
-            .clone();
-        pm.last_used.insert(second.clone(), ProxyManager::now_ms());
+        // Put both on cooldown, with `a` used a second before `b`. The
+        // timestamps are set explicitly rather than by calling
+        // get_next_proxy(): that picks at random among available proxies, and
+        // two calls can land in the same millisecond, which leaves the LRU
+        // order undefined.
+        let now = ProxyManager::now_ms();
+        pm.last_used
+            .insert("http:a:1:u:p:enabled".to_string(), now - 1_000);
+        pm.last_used.insert("http:b:2:u:p:enabled".to_string(), now);
 
-        // Now both are on cooldown; the fallback should return `first` (the older one).
+        // Both are on cooldown, so the fallback returns the older one.
         let fallback = pm.get_next_proxy().unwrap();
-        assert_eq!(fallback, first);
+        assert_eq!(fallback, "http:a:1:u:p:enabled");
     }
 
     #[test]
