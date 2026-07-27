@@ -32,8 +32,8 @@
 //! }
 //! ```
 
-pub mod models;
 pub mod exchanges;
+pub mod models;
 
 #[cfg(feature = "utils")]
 pub use sdktrader_utils as utils;
@@ -49,20 +49,14 @@ pub use sdktrader_api as api;
 
 /// Prelude module for convenient imports.
 pub mod prelude {
+    pub use crate::exchanges::{create_trader, ExchangeCredentials, ExchangeError, ExchangeTrader};
     pub use crate::models::*;
-    pub use crate::exchanges::{
-        create_trader,
-        ExchangeTrader,
-        ExchangeCredentials,
-        ExchangeError,
-    };
     pub use sdktrader_core::utils::timestamp_ms;
 }
 
 // Re-export main types at crate root
-pub use exchanges::{create_trader, ExchangeTrader, ExchangeCredentials};
+pub use exchanges::{create_trader, ExchangeCredentials, ExchangeTrader};
 pub use models::{
-    MarketType, OrderSide, OrderType, OrderStatus,
-    OrderResult, OrderInfo, AccountBalance,
-    TickerInfo, Orderbook,
+    AccountBalance, MarketType, OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType,
+    Orderbook, TickerInfo,
 };

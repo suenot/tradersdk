@@ -1,12 +1,12 @@
 //! Bybit exchange adapter.
 
+mod client;
 pub mod config;
 pub mod helpers;
-mod client;
-mod trader;
 pub mod models;
 pub mod services;
+mod trader;
 
-pub use trader::BybitTrader;
 pub use models::*;
 pub use services::{MarketStreamService, RestService, UserDataService, WsTradingService};
+pub use trader::BybitTrader;

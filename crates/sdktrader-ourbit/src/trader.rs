@@ -1,14 +1,14 @@
 //! Ourbit service-based trader implementation.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::Result;
 use async_trait::async_trait;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
+    TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::{debug, error};
@@ -86,10 +86,8 @@ impl ExchangeTrader for OurbitTrader {
     }
 
     async fn get_balance(&self) -> Result<AccountBalance> {
-        let response: OurbitResponse<Vec<OurbitBalance>> = self
-            .rest_service
-            .signed_get(endpoints::ASSETS, "")
-            .await?;
+        let response: OurbitResponse<Vec<OurbitBalance>> =
+            self.rest_service.signed_get(endpoints::ASSETS, "").await?;
 
         if !response.success {
             anyhow::bail!(
@@ -219,7 +217,9 @@ impl ExchangeTrader for OurbitTrader {
             return Ok(OrderResult::failure(
                 formatted,
                 side,
-                response.message.unwrap_or_else(|| "Unknown error".to_string()),
+                response
+                    .message
+                    .unwrap_or_else(|| "Unknown error".to_string()),
             ));
         }
 
@@ -274,7 +274,9 @@ impl ExchangeTrader for OurbitTrader {
             return Ok(OrderResult::failure(
                 formatted,
                 side,
-                response.message.unwrap_or_else(|| "Unknown error".to_string()),
+                response
+                    .message
+                    .unwrap_or_else(|| "Unknown error".to_string()),
             ));
         }
 
@@ -353,7 +355,11 @@ impl ExchangeTrader for OurbitTrader {
             status,
             side,
             order_type,
-            price: order.price.as_ref().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            price: order
+                .price
+                .as_ref()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0.0),
             quantity,
             filled_quantity,
             remaining_quantity: quantity - filled_quantity,
@@ -416,7 +422,9 @@ impl ExchangeTrader for OurbitTrader {
                 return Ok(OrderResult::failure(
                     formatted,
                     side,
-                    response.message.unwrap_or_else(|| "Unknown error".to_string()),
+                    response
+                        .message
+                        .unwrap_or_else(|| "Unknown error".to_string()),
                 ));
             }
 
@@ -469,7 +477,11 @@ impl ExchangeTrader for OurbitTrader {
         let data = response.data.unwrap_or_default();
 
         let parse_level = |level: &serde_json::Value| -> Option<OrderbookLevel> {
-            let price: f64 = level[0].as_str().or(level["price"].as_str())?.parse().ok()?;
+            let price: f64 = level[0]
+                .as_str()
+                .or(level["price"].as_str())?
+                .parse()
+                .ok()?;
             let qty: f64 = level[1].as_str().or(level["vol"].as_str())?.parse().ok()?;
             Some(OrderbookLevel {
                 price,

@@ -7,8 +7,8 @@ use serde::Deserialize;
 use sha2::Sha256;
 use tracing::debug;
 
-use sdktrader_core::utils::timestamp_ms;
 use crate::config::FUTURES_MAINNET_URL;
+use sdktrader_core::utils::timestamp_ms;
 
 type HmacSha256 = Hmac<Sha256>;
 

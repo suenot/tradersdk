@@ -127,11 +127,7 @@ impl CoinGeckoClient {
     ///
     /// # Returns
     /// A vector of `CoinMarketData` for the requested page.
-    pub async fn fetch_coins_page(
-        &self,
-        page: u32,
-        per_page: u32,
-    ) -> Result<Vec<CoinMarketData>> {
+    pub async fn fetch_coins_page(&self, page: u32, per_page: u32) -> Result<Vec<CoinMarketData>> {
         self.rate_limiter.wait_if_needed().await;
 
         let url = format!("{}/coins/markets", self.base_url);

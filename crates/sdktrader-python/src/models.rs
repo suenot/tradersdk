@@ -58,10 +58,7 @@ pub fn order_result_to_pydict(py: Python<'_>, result: &OrderResult) -> PyResult<
 ///
 /// Adds computed `total` field to each balance entry for backward
 /// compatibility with the previous manual dict construction.
-pub fn account_balance_to_pydict(
-    py: Python<'_>,
-    balance: &AccountBalance,
-) -> PyResult<Py<PyDict>> {
+pub fn account_balance_to_pydict(py: Python<'_>, balance: &AccountBalance) -> PyResult<Py<PyDict>> {
     let dict = to_pydict(py, balance)?;
 
     // Add computed `total` field to each nested balance dict.

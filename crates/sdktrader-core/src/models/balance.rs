@@ -66,7 +66,9 @@ impl AccountBalance {
     /// Get balance for specific asset.
     pub fn get_balance(&self, asset: &str) -> Option<&Balance> {
         let asset_upper = asset.to_uppercase();
-        self.balances.iter().find(|b| b.asset.to_uppercase() == asset_upper)
+        self.balances
+            .iter()
+            .find(|b| b.asset.to_uppercase() == asset_upper)
     }
 
     /// Get free balance for specific asset.

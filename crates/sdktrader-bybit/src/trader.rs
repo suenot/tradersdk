@@ -7,15 +7,15 @@
 //! - MarketStreamService: Public market data streams
 //! - UserDataService: Private user data streams
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
     TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::{Context, Result};
-use async_trait::async_trait;
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::warn;
@@ -180,19 +180,15 @@ impl ExchangeTrader for BybitTrader {
     }
 
     async fn test_connection(&self) -> Result<bool> {
-        let response: BybitResponse<ServerTimeResult> = self
-            .rest
-            .public_get(endpoints::SERVER_TIME)
-            .await?;
+        let response: BybitResponse<ServerTimeResult> =
+            self.rest.public_get(endpoints::SERVER_TIME).await?;
 
         Ok(response.is_success())
     }
 
     async fn get_server_time(&self) -> Result<i64> {
-        let response: BybitResponse<ServerTimeResult> = self
-            .rest
-            .public_get(endpoints::SERVER_TIME)
-            .await?;
+        let response: BybitResponse<ServerTimeResult> =
+            self.rest.public_get(endpoints::SERVER_TIME).await?;
 
         if let Some(result) = response.result {
             let seconds: i64 = result
@@ -228,7 +224,9 @@ impl ExchangeTrader for BybitTrader {
 
     async fn get_current_price(&self, symbol: &str) -> Result<f64> {
         let formatted_symbol = format_symbol(symbol);
-        let params = self.rest.with_category(&format!("symbol={}", formatted_symbol));
+        let params = self
+            .rest
+            .with_category(&format!("symbol={}", formatted_symbol));
         let response: BybitResponse<TickerResult> = self
             .rest
             .public_get_with_params(endpoints::TICKERS, &params)
@@ -249,7 +247,9 @@ impl ExchangeTrader for BybitTrader {
 
     async fn get_ticker(&self, symbol: &str) -> Result<TickerInfo> {
         let formatted_symbol = format_symbol(symbol);
-        let params = self.rest.with_category(&format!("symbol={}", formatted_symbol));
+        let params = self
+            .rest
+            .with_category(&format!("symbol={}", formatted_symbol));
         let response: BybitResponse<TickerResult> = self
             .rest
             .public_get_with_params(endpoints::TICKERS, &params)
@@ -268,7 +268,10 @@ impl ExchangeTrader for BybitTrader {
                     turnover_24h: t.turnover_24h.as_ref().and_then(|p| p.parse().ok()),
                     change_24h: None,
                     open_interest: t.open_interest.as_ref().and_then(|p| p.parse().ok()),
-                    open_interest_value: t.open_interest_value.as_ref().and_then(|p| p.parse().ok()),
+                    open_interest_value: t
+                        .open_interest_value
+                        .as_ref()
+                        .and_then(|p| p.parse().ok()),
                     funding_rate: t.funding_rate.as_ref().and_then(|p| p.parse().ok()),
                     next_funding_time: t.next_funding_time.as_ref().and_then(|p| p.parse().ok()),
                     mark_price: t.mark_price.as_ref().and_then(|p| p.parse().ok()),
@@ -284,7 +287,9 @@ impl ExchangeTrader for BybitTrader {
     async fn get_orderbook(&self, symbol: &str, depth: u32) -> Result<Orderbook> {
         let formatted_symbol = format_symbol(symbol);
         let limit = depth.min(200);
-        let params = self.rest.with_category(&format!("symbol={}&limit={}", formatted_symbol, limit));
+        let params = self
+            .rest
+            .with_category(&format!("symbol={}&limit={}", formatted_symbol, limit));
 
         let response: BybitResponse<OrderbookResult> = self
             .rest
@@ -459,7 +464,14 @@ impl ExchangeTrader for BybitTrader {
 
         // Use WebSocket trading service for low-latency execution
         self.ws_trading
-            .place_order_ws(&formatted_symbol, side, OrderType::Market, quantity, None, false)
+            .place_order_ws(
+                &formatted_symbol,
+                side,
+                OrderType::Market,
+                quantity,
+                None,
+                false,
+            )
             .await
     }
 
@@ -744,7 +756,9 @@ impl ExchangeTrader for BybitTrader {
         depth: u32,
         timeout_ms: u64,
     ) -> Result<WsTestResult> {
-        self.ws_stream.test_ws_orderbook(symbol, depth, timeout_ms).await
+        self.ws_stream
+            .test_ws_orderbook(symbol, depth, timeout_ms)
+            .await
     }
 
     async fn test_ws_trades(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {
@@ -759,11 +773,8 @@ impl ExchangeTrader for BybitTrader {
         &self,
         sender: broadcast::Sender<OrderUpdateEvent>,
     ) -> Result<JoinHandle<()>> {
-        let user_data_service = UserDataService::new(
-            self.rest.api_key(),
-            self.rest.api_secret(),
-            self.testnet,
-        );
+        let user_data_service =
+            UserDataService::new(self.rest.api_key(), self.rest.api_secret(), self.testnet);
 
         user_data_service.subscribe_order_updates(sender)
     }

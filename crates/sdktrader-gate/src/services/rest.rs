@@ -7,9 +7,9 @@ use serde::Deserialize;
 use sha2::{Digest, Sha512};
 use tracing::debug;
 
-use sdktrader_core::utils::timestamp_ms;
+use crate::config::{FUTURES_MAINNET_URL, SPOT_MAINNET_URL};
 use sdktrader_core::models::MarketType;
-use crate::config::{SPOT_MAINNET_URL, FUTURES_MAINNET_URL};
+use sdktrader_core::utils::timestamp_ms;
 
 /// Gate.io REST API service.
 pub struct RestService {

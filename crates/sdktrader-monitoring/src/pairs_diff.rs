@@ -24,10 +24,7 @@ impl MarketDiffDetector {
 
     /// Load the baseline explicitly (first API response, no changes reported).
     pub fn load_initial(&mut self, markets: Vec<MarketInfo>) {
-        self.current = markets
-            .into_iter()
-            .map(|m| (m.market.clone(), m))
-            .collect();
+        self.current = markets.into_iter().map(|m| (m.market.clone(), m)).collect();
         tracing::info!(count = self.current.len(), "Initial markets loaded");
     }
 
@@ -37,10 +34,8 @@ impl MarketDiffDetector {
     pub fn detect_changes(&mut self, markets: Vec<MarketInfo>) -> Vec<MarketChange> {
         let timestamp_ms = chrono::Utc::now().timestamp_millis();
 
-        let new_map: HashMap<String, MarketInfo> = markets
-            .into_iter()
-            .map(|m| (m.market.clone(), m))
-            .collect();
+        let new_map: HashMap<String, MarketInfo> =
+            markets.into_iter().map(|m| (m.market.clone(), m)).collect();
 
         // First run: establish the baseline, report nothing.
         if self.current.is_empty() {

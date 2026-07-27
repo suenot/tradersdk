@@ -4,11 +4,11 @@
 //! with a manager for routing to multiple channels.
 
 mod base;
+mod manager;
 mod telegram;
 mod webhook;
-mod manager;
 
 pub use base::*;
+pub use manager::*;
 pub use telegram::*;
 pub use webhook::*;
-pub use manager::*;

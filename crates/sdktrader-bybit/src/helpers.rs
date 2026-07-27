@@ -74,11 +74,7 @@ pub fn log_order_update(event: &OrderUpdateEvent) {
 /// - "BTC-USDT" -> "BTCUSDT"
 /// - "BTC" -> "BTCUSDT" (appends USDT if not present)
 pub fn format_symbol(symbol: &str) -> String {
-    let symbol = symbol
-        .to_uppercase()
-        .replace('/', "")
-        .replace('-', "")
-        .replace(':', "");
+    let symbol = symbol.to_uppercase().replace(['/', '-', ':'], "");
 
     if symbol.ends_with("USDT") || symbol.ends_with("USDC") {
         symbol
@@ -126,7 +122,10 @@ mod tests {
         // Alternative statuses
         assert!(matches!(parse_order_status("Open"), OrderStatus::New));
         assert!(matches!(parse_order_status("Live"), OrderStatus::New));
-        assert!(matches!(parse_order_status("Untriggered"), OrderStatus::New));
+        assert!(matches!(
+            parse_order_status("Untriggered"),
+            OrderStatus::New
+        ));
         assert!(matches!(parse_order_status("Triggered"), OrderStatus::New));
         assert!(matches!(parse_order_status("Closed"), OrderStatus::Filled));
         assert!(matches!(
@@ -137,7 +136,10 @@ mod tests {
             parse_order_status("Deactivated"),
             OrderStatus::Cancelled
         ));
-        assert!(matches!(parse_order_status("Failed"), OrderStatus::Rejected));
+        assert!(matches!(
+            parse_order_status("Failed"),
+            OrderStatus::Rejected
+        ));
 
         // Case insensitivity
         assert!(matches!(parse_order_status("new"), OrderStatus::New));

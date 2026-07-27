@@ -21,12 +21,12 @@
 //! - Real-time WebSocket data feeds
 //! - Order updates via WebSocket (no authentication required, uses wallet address)
 
+mod client;
 pub mod config;
 pub mod helpers;
-mod client;
-mod trader;
 pub mod models;
 pub mod services;
+mod trader;
 
 // Export the service-based trader as the main HyperliquidTrader
 pub use trader::HyperliquidTrader;

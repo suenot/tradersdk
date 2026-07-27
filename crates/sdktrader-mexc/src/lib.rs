@@ -18,12 +18,12 @@
 //! - Spot: BTCUSDT
 //! - Futures: BTC_USDT
 
+mod client;
 pub mod config;
 pub mod helpers;
-mod client;
-mod trader;
 pub mod models;
 pub mod services;
+mod trader;
 
 // Export the service-based trader as the main MexcTrader
 pub use trader::MexcTrader;

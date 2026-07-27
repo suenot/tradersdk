@@ -62,10 +62,7 @@ impl AccountDetector {
     ///
     /// Processes all bots and groups them by unique account identity.
     /// Returns a reference to the map of detected accounts.
-    pub fn detect_accounts(
-        &mut self,
-        bots: &[BotAccountInfo],
-    ) -> &HashMap<String, UniqueAccount> {
+    pub fn detect_accounts(&mut self, bots: &[BotAccountInfo]) -> &HashMap<String, UniqueAccount> {
         for bot in bots {
             let account_id =
                 Self::generate_account_id(&bot.exchange, &bot.api_key, &bot.api_secret);
@@ -73,14 +70,14 @@ impl AccountDetector {
             self.bot_to_account
                 .insert(bot.name.clone(), account_id.clone());
 
-            let account = self
-                .accounts
-                .entry(account_id.clone())
-                .or_insert_with(|| UniqueAccount {
-                    exchange: bot.exchange.clone(),
-                    account_id: account_id.clone(),
-                    bot_names: Vec::new(),
-                });
+            let account =
+                self.accounts
+                    .entry(account_id.clone())
+                    .or_insert_with(|| UniqueAccount {
+                        exchange: bot.exchange.clone(),
+                        account_id: account_id.clone(),
+                        bot_names: Vec::new(),
+                    });
 
             if !account.bot_names.contains(&bot.name) {
                 account.bot_names.push(bot.name.clone());
@@ -291,7 +288,10 @@ mod tests {
 
         // Different first 8 chars should produce different ID
         let id3 = AccountDetector::generate_account_id("bybit", "key", "other123_suffix");
-        assert_ne!(id1, id3, "Different secret prefixes should produce different IDs");
+        assert_ne!(
+            id1, id3,
+            "Different secret prefixes should produce different IDs"
+        );
     }
 
     #[test]

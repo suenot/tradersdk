@@ -24,8 +24,10 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
 
+      # dead_code is allowed: exchange adapters carry helpers and response
+      # fields for endpoints that are wired up but not yet called.
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings -A dead_code
 
       - name: Test
         run: cargo test --workspace

@@ -220,8 +220,8 @@ impl PnLTracker {
 
             if gross_loss > Decimal::ZERO {
                 use rust_decimal::prelude::ToPrimitive;
-                summary.profit_factor = gross_profit.to_f64().unwrap_or(0.0)
-                    / gross_loss.to_f64().unwrap_or(1.0);
+                summary.profit_factor =
+                    gross_profit.to_f64().unwrap_or(0.0) / gross_loss.to_f64().unwrap_or(1.0);
             }
         }
 

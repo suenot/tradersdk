@@ -1,9 +1,9 @@
 //! REST API service for BingX.
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::models::MarketType;
 use anyhow::{Context, Result};
 use reqwest::Client;
+use sdktrader_core::models::MarketType;
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
 use serde::de::DeserializeOwned;
 use tracing::debug;
 
@@ -22,12 +22,7 @@ pub struct RestService {
 
 impl RestService {
     /// Create a new REST service.
-    pub fn new(
-        api_key: &str,
-        api_secret: &str,
-        testnet: bool,
-        market_type: MarketType,
-    ) -> Self {
+    pub fn new(api_key: &str, api_secret: &str, testnet: bool, market_type: MarketType) -> Self {
         let base_url = if testnet { TESTNET_URL } else { MAINNET_URL };
 
         Self {

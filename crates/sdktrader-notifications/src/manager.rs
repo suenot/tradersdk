@@ -1,8 +1,8 @@
 //! Notification manager for multiple channels.
 
 use crate::{
-    NotificationMessage, NotificationResult, TelegramConfig, TelegramNotifier,
-    WebhookConfig, WebhookNotifier,
+    NotificationMessage, NotificationResult, TelegramConfig, TelegramNotifier, WebhookConfig,
+    WebhookNotifier,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -84,7 +84,10 @@ impl NotificationManager {
     }
 
     /// Send a notification to all channels.
-    pub async fn send_all(&self, message: &NotificationMessage) -> Vec<(String, NotificationResult)> {
+    pub async fn send_all(
+        &self,
+        message: &NotificationMessage,
+    ) -> Vec<(String, NotificationResult)> {
         if !self.enabled {
             debug!("Notifications disabled, skipping");
             return vec![];
@@ -111,7 +114,11 @@ impl NotificationManager {
     }
 
     /// Send a notification to a specific channel.
-    pub async fn send_to(&self, channel_name: &str, message: &NotificationMessage) -> Result<NotificationResult> {
+    pub async fn send_to(
+        &self,
+        channel_name: &str,
+        message: &NotificationMessage,
+    ) -> Result<NotificationResult> {
         if !self.enabled {
             debug!("Notifications disabled, skipping");
             return Ok(NotificationResult::success());
@@ -147,13 +154,7 @@ impl NotificationManager {
     }
 
     /// Send trade alert to all channels.
-    pub async fn notify_trade(
-        &self,
-        symbol: &str,
-        side: &str,
-        price: f64,
-        amount: f64,
-    ) {
+    pub async fn notify_trade(&self, symbol: &str, side: &str, price: f64, amount: f64) {
         let body = format!(
             "Symbol: {}\nSide: {}\nPrice: {:.4}\nAmount: {:.4}",
             symbol, side, price, amount

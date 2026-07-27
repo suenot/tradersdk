@@ -25,7 +25,7 @@ impl OrderbookLevel {
 }
 
 /// Orderbook snapshot.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Orderbook {
     /// Trading symbol.
@@ -151,17 +151,6 @@ impl Orderbook {
         }
 
         Some(total_value / quantity)
-    }
-}
-
-impl Default for Orderbook {
-    fn default() -> Self {
-        Self {
-            symbol: String::new(),
-            bids: vec![],
-            asks: vec![],
-            timestamp: 0,
-        }
     }
 }
 

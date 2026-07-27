@@ -4,9 +4,9 @@ use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-use sdktrader_core::models::WsTestResult;
 use crate::config::{MAINNET_WS_URL, TESTNET_WS_URL};
 use crate::helpers::to_hl_symbol;
+use sdktrader_core::models::WsTestResult;
 
 /// Hyperliquid public market data stream service.
 pub struct MarketStreamService {

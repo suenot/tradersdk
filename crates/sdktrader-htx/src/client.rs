@@ -11,18 +11,18 @@
 //! - Spot: https://api.huobi.pro
 //! - Futures: https://api.hbdm.com
 
-use sdktrader_core::utils::{hmac_sign_base64, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, Balance, ExchangeCapabilities, FundingRateEntry, MarketType,
-    OpenInterestEntry, OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType,
-    OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use flate2::read::GzDecoder;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, Balance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::{hmac_sign_base64, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use serde::Deserialize;
 use std::io::Read;
 use tokio::sync::broadcast;
@@ -248,7 +248,9 @@ impl HtxTrader {
             );
         }
 
-        let accounts = response.data.ok_or_else(|| anyhow::anyhow!("No accounts found"))?;
+        let accounts = response
+            .data
+            .ok_or_else(|| anyhow::anyhow!("No accounts found"))?;
 
         // Find spot account
         for account in accounts {
@@ -308,7 +310,8 @@ impl HtxTrader {
             body["price"] = serde_json::json!(format!("{:.8}", p));
         }
 
-        let response: HtxResponse<String> = self.signed_post("/v1/order/orders/place", &body).await?;
+        let response: HtxResponse<String> =
+            self.signed_post("/v1/order/orders/place", &body).await?;
 
         if response.status == "ok" {
             let order_id = response.data.unwrap_or_default();
@@ -327,7 +330,9 @@ impl HtxTrader {
                 raw_response: None,
             })
         } else {
-            let error_msg = response.err_msg.unwrap_or_else(|| "Unknown error".to_string());
+            let error_msg = response
+                .err_msg
+                .unwrap_or_else(|| "Unknown error".to_string());
             error!("HTX spot order failed: {}", error_msg);
             Ok(OrderResult::failure(symbol.to_string(), side, error_msg))
         }
@@ -366,12 +371,15 @@ impl HtxTrader {
             body["price"] = serde_json::json!(p);
         }
 
-        let response: HtxFuturesResponse<FuturesOrderResult> =
-            self.signed_post("/linear-swap-api/v1/swap_order", &body).await?;
+        let response: HtxFuturesResponse<FuturesOrderResult> = self
+            .signed_post("/linear-swap-api/v1/swap_order", &body)
+            .await?;
 
         if response.status == "ok" {
             if let Some(data) = response.data {
-                let order_id = data.order_id_str.unwrap_or_else(|| data.order_id.to_string());
+                let order_id = data
+                    .order_id_str
+                    .unwrap_or_else(|| data.order_id.to_string());
                 info!("HTX futures order placed: {}", order_id);
                 return Ok(OrderResult {
                     success: true,
@@ -389,7 +397,9 @@ impl HtxTrader {
             }
         }
 
-        let error_msg = response.err_msg.unwrap_or_else(|| "Unknown error".to_string());
+        let error_msg = response
+            .err_msg
+            .unwrap_or_else(|| "Unknown error".to_string());
         error!("HTX futures order failed: {}", error_msg);
         Ok(OrderResult::failure(symbol.to_string(), side, error_msg))
     }
@@ -415,8 +425,9 @@ impl HtxTrader {
                 "contract_code": symbol.to_uppercase(),
             });
 
-            let response: HtxFuturesResponse<serde_json::Value> =
-                self.signed_post("/linear-swap-api/v1/swap_cancel", &body).await?;
+            let response: HtxFuturesResponse<serde_json::Value> = self
+                .signed_post("/linear-swap-api/v1/swap_cancel", &body)
+                .await?;
 
             if response.status == "ok" {
                 info!("HTX futures order cancelled: {}", order_id);
@@ -694,10 +705,7 @@ impl ExchangeTrader for HtxTrader {
             let mut usdt_locked = 0.0;
 
             for item in list {
-                let currency = item
-                    .get("currency")
-                    .and_then(|c| c.as_str())
-                    .unwrap_or("");
+                let currency = item.get("currency").and_then(|c| c.as_str()).unwrap_or("");
                 let balance_type = item.get("type").and_then(|t| t.as_str()).unwrap_or("");
                 let balance: f64 = item
                     .get("balance")
@@ -778,7 +786,8 @@ impl ExchangeTrader for HtxTrader {
                 SPOT_REST_URL,
                 formatted_symbol.to_lowercase()
             );
-            let response: HtxResponse<HtxTicker> = self.client.get(&url).send().await?.json().await?;
+            let response: HtxResponse<HtxTicker> =
+                self.client.get(&url).send().await?.json().await?;
 
             if response.status == "ok" {
                 if let Some(ticker) = response.data {
@@ -812,7 +821,8 @@ impl ExchangeTrader for HtxTrader {
                 SPOT_REST_URL,
                 formatted_symbol.to_lowercase()
             );
-            let response: HtxResponse<HtxTicker> = self.client.get(&url).send().await?.json().await?;
+            let response: HtxResponse<HtxTicker> =
+                self.client.get(&url).send().await?.json().await?;
 
             if response.status == "ok" {
                 if let Some(t) = response.data {
@@ -865,8 +875,7 @@ impl ExchangeTrader for HtxTrader {
                     data.get("funding_rate")
                         .and_then(|r| r.as_str())
                         .and_then(|r| r.parse().ok()),
-                    data.get("next_funding_time")
-                        .and_then(|t| t.as_i64()),
+                    data.get("next_funding_time").and_then(|t| t.as_i64()),
                 )
             } else {
                 (None, None)
@@ -1033,7 +1042,9 @@ impl ExchangeTrader for HtxTrader {
         let formatted_symbol = self.format_symbol(symbol);
         let url = format!(
             "{}/linear-swap-api/v1/swap_historical_funding_rate?contract_code={}&page_size={}",
-            FUTURES_REST_URL, formatted_symbol, limit.min(50)
+            FUTURES_REST_URL,
+            formatted_symbol,
+            limit.min(50)
         );
 
         let response: HtxFuturesResponse<serde_json::Value> =
@@ -1082,7 +1093,8 @@ impl ExchangeTrader for HtxTrader {
         }
 
         let formatted_symbol = self.format_symbol(symbol);
-        let url = format!(
+        let url =
+            format!(
             "{}/linear-swap-api/v1/swap_his_open_interest?contract_code={}&period=60min&size={}",
             FUTURES_REST_URL, formatted_symbol, limit.min(200)
         );
@@ -1221,8 +1233,14 @@ impl ExchangeTrader for HtxTrader {
         _reduce_only: bool,
     ) -> Result<OrderResult> {
         let formatted_symbol = self.format_symbol(symbol);
-        self.place_order_rest(&formatted_symbol, side, OrderType::Limit, quantity, Some(price))
-            .await
+        self.place_order_rest(
+            &formatted_symbol,
+            side,
+            OrderType::Limit,
+            quantity,
+            Some(price),
+        )
+        .await
     }
 
     async fn cancel_order(&self, symbol: &str, order_id: &str) -> Result<bool> {
@@ -1290,7 +1308,13 @@ impl ExchangeTrader for HtxTrader {
                 .get("field-cash-amount")
                 .and_then(|v| v.as_str())
                 .and_then(|v| v.parse::<f64>().ok())
-                .map(|cash| if filled_quantity > 0.0 { cash / filled_quantity } else { 0.0 });
+                .map(|cash| {
+                    if filled_quantity > 0.0 {
+                        cash / filled_quantity
+                    } else {
+                        0.0
+                    }
+                });
 
             Ok(OrderInfo {
                 order_id: order_id.to_string(),
@@ -1307,10 +1331,7 @@ impl ExchangeTrader for HtxTrader {
                 filled_quantity,
                 remaining_quantity: quantity - filled_quantity,
                 avg_price,
-                timestamp: data
-                    .get("created-at")
-                    .and_then(|t| t.as_i64())
-                    .unwrap_or(0),
+                timestamp: data.get("created-at").and_then(|t| t.as_i64()).unwrap_or(0),
                 time_in_force: TimeInForce::GTC,
                 reduce_only: false,
             })
@@ -1342,7 +1363,7 @@ impl ExchangeTrader for HtxTrader {
                 .get("status")
                 .and_then(|s| s.as_i64())
                 .map(|s| match s {
-                    1 | 2 | 3 => "submitted",
+                    1..=3 => "submitted",
                     4 => "partial-filled",
                     5 | 6 => "filled",
                     7 => "canceled",
@@ -1392,10 +1413,7 @@ impl ExchangeTrader for HtxTrader {
                         .and_then(|q| q.as_f64())
                         .unwrap_or(0.0),
                 avg_price: data.get("trade_avg_price").and_then(|p| p.as_f64()),
-                timestamp: data
-                    .get("created_at")
-                    .and_then(|t| t.as_i64())
-                    .unwrap_or(0),
+                timestamp: data.get("created_at").and_then(|t| t.as_i64()).unwrap_or(0),
                 time_in_force: TimeInForce::GTC,
                 reduce_only: data.get("offset").and_then(|o| o.as_str()) == Some("close"),
             })
@@ -1468,7 +1486,9 @@ impl ExchangeTrader for HtxTrader {
 
         if close_response.status == "ok" {
             if let Some(data) = close_response.data {
-                let order_id = data.order_id_str.unwrap_or_else(|| data.order_id.to_string());
+                let order_id = data
+                    .order_id_str
+                    .unwrap_or_else(|| data.order_id.to_string());
                 info!("HTX position closed: {}", order_id);
                 return Ok(OrderResult {
                     success: true,
@@ -1524,13 +1544,13 @@ impl ExchangeTrader for HtxTrader {
                 let base = &symbol[..symbol.len() - 4];
                 return format!("{}-USDT", base);
             }
-            return format!("{}-USDT", symbol);
+            format!("{}-USDT", symbol)
         } else {
             // Spot: btcusdt format (lowercase)
             if symbol.ends_with("USDT") {
                 return symbol.to_lowercase();
             }
-            return format!("{}usdt", symbol.to_lowercase());
+            format!("{}usdt", symbol.to_lowercase())
         }
     }
 
@@ -1550,21 +1570,13 @@ impl ExchangeTrader for HtxTrader {
 
         let connect_time = start.elapsed().as_millis() as u64;
 
-        let sub_msg = if self.market_type == MarketType::Spot {
-            serde_json::json!({
-                "sub": format!("market.{}.depth.step0", formatted_symbol),
-                "id": "orderbook_test"
-            })
-        } else {
-            serde_json::json!({
-                "sub": format!("market.{}.depth.step0", formatted_symbol),
-                "id": "orderbook_test"
-            })
-        };
+        // Spot and futures use the same depth channel on HTX.
+        let sub_msg = serde_json::json!({
+            "sub": format!("market.{}.depth.step0", formatted_symbol),
+            "id": "orderbook_test"
+        });
 
-        ws_stream
-            .send(Message::Text(sub_msg.to_string()))
-            .await?;
+        ws_stream.send(Message::Text(sub_msg.to_string())).await?;
 
         let mut messages_received = 0u32;
         let mut data_sample = None;
@@ -1647,9 +1659,7 @@ impl ExchangeTrader for HtxTrader {
             "id": "trade_test"
         });
 
-        ws_stream
-            .send(Message::Text(sub_msg.to_string()))
-            .await?;
+        ws_stream.send(Message::Text(sub_msg.to_string())).await?;
 
         let mut messages_received = 0u32;
         let mut data_sample = None;
@@ -1731,9 +1741,7 @@ impl ExchangeTrader for HtxTrader {
             "id": "ticker_test"
         });
 
-        ws_stream
-            .send(Message::Text(sub_msg.to_string()))
-            .await?;
+        ws_stream.send(Message::Text(sub_msg.to_string())).await?;
 
         let mut messages_received = 0u32;
         let mut data_sample = None;
@@ -1866,10 +1874,7 @@ impl ExchangeTrader for HtxTrader {
                             })
                         };
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(auth_msg.to_string()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(auth_msg.to_string())).await {
                             error!("[{}] Failed to send auth: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1953,10 +1958,7 @@ impl ExchangeTrader for HtxTrader {
                             })
                         };
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(sub_msg.to_string()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(sub_msg.to_string())).await {
                             error!("[{}] Failed to subscribe: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -2169,7 +2171,10 @@ mod tests {
     fn test_parse_order_status() {
         assert_eq!(parse_order_status_str("submitted"), OrderStatus::New);
         assert_eq!(parse_order_status_str("filled"), OrderStatus::Filled);
-        assert_eq!(parse_order_status_str("partial-filled"), OrderStatus::PartiallyFilled);
+        assert_eq!(
+            parse_order_status_str("partial-filled"),
+            OrderStatus::PartiallyFilled
+        );
         assert_eq!(parse_order_status_str("canceled"), OrderStatus::Cancelled);
         assert_eq!(parse_order_status_str("rejected"), OrderStatus::Rejected);
     }

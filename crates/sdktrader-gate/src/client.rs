@@ -2,18 +2,18 @@
 //!
 //! Gate.io API v4 implementation with HMAC-SHA512 signing.
 
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use hmac::{Hmac, Mac};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use serde::{Deserialize, Serialize};
 use sha2::Sha512;
 use tokio::sync::broadcast;
@@ -79,15 +79,12 @@ impl GateTrader {
             method, url, query_string, body_hash, timestamp
         );
 
-        debug!(
-            "Gate.io sign string: {}",
-            sign_string.replace("\n", "\\n")
-        );
+        debug!("Gate.io sign string: {}", sign_string.replace("\n", "\\n"));
 
         // HMAC-SHA512 signature
         type HmacSha512 = Hmac<Sha512>;
-        let mut mac =
-            HmacSha512::new_from_slice(self.api_secret.as_bytes()).expect("HMAC can take key of any size");
+        let mut mac = HmacSha512::new_from_slice(self.api_secret.as_bytes())
+            .expect("HMAC can take key of any size");
         mac.update(sign_string.as_bytes());
         let signature = hex::encode(mac.finalize().into_bytes());
 
@@ -193,8 +190,8 @@ impl GateTrader {
         let sign_string = format!("channel={}&event={}&time={}", channel, event, time);
 
         type HmacSha512 = Hmac<Sha512>;
-        let mut mac =
-            HmacSha512::new_from_slice(self.api_secret.as_bytes()).expect("HMAC can take key of any size");
+        let mut mac = HmacSha512::new_from_slice(self.api_secret.as_bytes())
+            .expect("HMAC can take key of any size");
         mac.update(sign_string.as_bytes());
         hex::encode(mac.finalize().into_bytes())
     }
@@ -1003,8 +1000,7 @@ impl ExchangeTrader for GateTrader {
             return Ok(true);
         }
 
-        let contract =
-            symbol.ok_or_else(|| anyhow::anyhow!("Symbol required for leverage"))?;
+        let contract = symbol.ok_or_else(|| anyhow::anyhow!("Symbol required for leverage"))?;
         let formatted = self.format_symbol(contract);
 
         let body = serde_json::json!({
@@ -1114,7 +1110,9 @@ impl ExchangeTrader for GateTrader {
                 _ => OrderStatus::New,
             };
 
-            let filled_quantity: f64 = order.filled_total.as_ref()
+            let filled_quantity: f64 = order
+                .filled_total
+                .as_ref()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
             let quantity: f64 = order.amount.parse().unwrap_or(0.0);
@@ -1124,9 +1122,21 @@ impl ExchangeTrader for GateTrader {
                 client_order_id: None,
                 symbol: order.currency_pair,
                 status,
-                side: if order.side == "buy" { OrderSide::Buy } else { OrderSide::Sell },
-                order_type: if order.order_type == "market" { OrderType::Market } else { OrderType::Limit },
-                price: order.price.as_ref().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+                side: if order.side == "buy" {
+                    OrderSide::Buy
+                } else {
+                    OrderSide::Sell
+                },
+                order_type: if order.order_type == "market" {
+                    OrderType::Market
+                } else {
+                    OrderType::Limit
+                },
+                price: order
+                    .price
+                    .as_ref()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0.0),
                 quantity,
                 filled_quantity,
                 remaining_quantity: quantity - filled_quantity,
@@ -1137,10 +1147,7 @@ impl ExchangeTrader for GateTrader {
             })
         } else {
             let order: FuturesOrderResponse = self
-                .signed_get(
-                    &format!("/futures/usdt/orders/{}", order_id),
-                    "",
-                )
+                .signed_get(&format!("/futures/usdt/orders/{}", order_id), "")
                 .await?;
 
             let quantity = order.size.abs() as f64;
@@ -1150,9 +1157,17 @@ impl ExchangeTrader for GateTrader {
                 client_order_id: None,
                 symbol: order.contract,
                 status: OrderStatus::New, // Would need to check actual status field
-                side: if order.size > 0 { OrderSide::Buy } else { OrderSide::Sell },
+                side: if order.size > 0 {
+                    OrderSide::Buy
+                } else {
+                    OrderSide::Sell
+                },
                 order_type: OrderType::Limit,
-                price: order.price.as_ref().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+                price: order
+                    .price
+                    .as_ref()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0.0),
                 quantity,
                 filled_quantity: 0.0, // Would need actual field
                 remaining_quantity: quantity,
@@ -1294,16 +1309,8 @@ impl ExchangeTrader for GateTrader {
             .map(|arr| {
                 arr.iter()
                     .filter_map(|level| {
-                        let price: f64 = level["p"]
-                            .as_str()
-                            .or(level[0].as_str())?
-                            .parse()
-                            .ok()?;
-                        let qty: f64 = level["s"]
-                            .as_str()
-                            .or(level[1].as_str())?
-                            .parse()
-                            .ok()?;
+                        let price: f64 = level["p"].as_str().or(level[0].as_str())?.parse().ok()?;
+                        let qty: f64 = level["s"].as_str().or(level[1].as_str())?.parse().ok()?;
                         Some(OrderbookLevel {
                             price,
                             quantity: qty,
@@ -1318,16 +1325,8 @@ impl ExchangeTrader for GateTrader {
             .map(|arr| {
                 arr.iter()
                     .filter_map(|level| {
-                        let price: f64 = level["p"]
-                            .as_str()
-                            .or(level[0].as_str())?
-                            .parse()
-                            .ok()?;
-                        let qty: f64 = level["s"]
-                            .as_str()
-                            .or(level[1].as_str())?
-                            .parse()
-                            .ok()?;
+                        let price: f64 = level["p"].as_str().or(level[0].as_str())?.parse().ok()?;
+                        let qty: f64 = level["s"].as_str().or(level[1].as_str())?.parse().ok()?;
                         Some(OrderbookLevel {
                             price,
                             quantity: qty,
@@ -1348,7 +1347,7 @@ impl ExchangeTrader for GateTrader {
     async fn test_ws_orderbook(
         &self,
         symbol: &str,
-        depth: u32,
+        _depth: u32,
         timeout_ms: u64,
     ) -> Result<WsTestResult> {
         let formatted = self.format_symbol(symbol);
@@ -1540,7 +1539,9 @@ impl ExchangeTrader for GateTrader {
                 low_24h: ticker["low_24h"].as_str().and_then(|s| s.parse().ok()),
                 volume_24h: ticker["base_volume"].as_str().and_then(|s| s.parse().ok()),
                 turnover_24h: ticker["quote_volume"].as_str().and_then(|s| s.parse().ok()),
-                change_24h: ticker["change_percentage"].as_str().and_then(|s| s.parse().ok()),
+                change_24h: ticker["change_percentage"]
+                    .as_str()
+                    .and_then(|s| s.parse().ok()),
                 open_interest: None,
                 open_interest_value: None,
                 funding_rate: None,
@@ -1578,8 +1579,12 @@ impl ExchangeTrader for GateTrader {
             high_24h: ticker["high_24h"].as_str().and_then(|s| s.parse().ok()),
             low_24h: ticker["low_24h"].as_str().and_then(|s| s.parse().ok()),
             volume_24h: ticker["volume_24h"].as_str().and_then(|s| s.parse().ok()),
-            turnover_24h: ticker["volume_24h_usd"].as_str().and_then(|s| s.parse().ok()),
-            change_24h: ticker["change_percentage"].as_str().and_then(|s| s.parse().ok()),
+            turnover_24h: ticker["volume_24h_usd"]
+                .as_str()
+                .and_then(|s| s.parse().ok()),
+            change_24h: ticker["change_percentage"]
+                .as_str()
+                .and_then(|s| s.parse().ok()),
             open_interest: ticker["total_size"].as_str().and_then(|s| s.parse().ok()),
             open_interest_value: None,
             funding_rate: ticker["funding_rate"].as_str().and_then(|s| s.parse().ok()),
@@ -1709,7 +1714,7 @@ impl ExchangeTrader for GateTrader {
         &self,
         symbol: &str,
         _interval: &str,
-        limit: u32,
+        _limit: u32,
     ) -> Result<Vec<OpenInterestEntry>> {
         if self.market_type != MarketType::Swap {
             anyhow::bail!("Open interest only available for futures");

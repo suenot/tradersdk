@@ -8,17 +8,17 @@
 //! - Private WebSocket subscription for order updates
 
 use crate::models::*;
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use futures_util::{SinkExt, StreamExt};
+use reqwest::Client;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
     OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::{Context, Result};
-use async_trait::async_trait;
-use futures_util::{SinkExt, StreamExt};
-use reqwest::Client;
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -369,7 +369,7 @@ impl PhemexTrader {
                 }
             }
 
-            return Ok(OrderResult::failure(symbol.to_string(), side, response.msg));
+            Ok(OrderResult::failure(symbol.to_string(), side, response.msg))
         } else {
             // Spot trading - use spot/orders endpoint
             let mut body = serde_json::json!({
@@ -409,7 +409,7 @@ impl PhemexTrader {
                 }
             }
 
-            return Ok(OrderResult::failure(symbol.to_string(), side, response.msg));
+            Ok(OrderResult::failure(symbol.to_string(), side, response.msg))
         }
     }
 
@@ -1108,6 +1108,17 @@ impl ExchangeTrader for PhemexTrader {
     }
 
     fn format_symbol(&self, base_symbol: &str) -> String {
+        // Spot symbols already carry the `s` prefix (sBTCUSDT). Detected
+        // before uppercasing, otherwise the prefix cannot be told apart from
+        // a ticker starting with S (SOL, SUI).
+        if !self.is_linear() {
+            if let Some(rest) = base_symbol.strip_prefix('s') {
+                if rest.ends_with("USDT") && rest.chars().all(|c| c.is_ascii_uppercase()) {
+                    return base_symbol.to_string();
+                }
+            }
+        }
+
         let symbol = base_symbol.to_uppercase();
 
         // Handle BTC/USDT format
@@ -1124,9 +1135,7 @@ impl ExchangeTrader for PhemexTrader {
             }
         } else {
             // For spot, use sBTCUSDT format
-            if symbol.starts_with('s') && symbol.ends_with("USDT") {
-                symbol
-            } else if symbol.ends_with("USDT") {
+            if symbol.ends_with("USDT") {
                 format!("s{}", symbol)
             } else {
                 format!("s{}USDT", symbol)
@@ -1629,6 +1638,10 @@ mod tests {
         assert_eq!(trader.format_symbol("BTC"), "sBTCUSDT");
         assert_eq!(trader.format_symbol("BTCUSDT"), "sBTCUSDT");
         assert_eq!(trader.format_symbol("sBTCUSDT"), "sBTCUSDT");
+
+        // Tickers starting with s are not spot-prefixed symbols
+        assert_eq!(trader.format_symbol("sol"), "sSOLUSDT");
+        assert_eq!(trader.format_symbol("SUI"), "sSUIUSDT");
     }
 
     #[test]

@@ -3,9 +3,9 @@
 //! Unified trading interface implemented by every exchange adapter.
 
 use crate::models::{
-    AccountBalance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
-    Orderbook, TickerInfo, FundingRateEntry, OpenInterestEntry, OrderUpdateEvent,
-    WsTestResult, OrderTestResult,
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderTestResult, OrderUpdateEvent, Orderbook, TickerInfo,
+    WsTestResult,
 };
 use anyhow::Result;
 use async_trait::async_trait;
@@ -84,13 +84,28 @@ pub trait ExchangeTrader: Send + Sync {
     }
 
     /// Get funding rate history.
-    async fn get_funding_rate_history(&self, _symbol: &str, _limit: u32) -> Result<Vec<FundingRateEntry>> {
-        anyhow::bail!("get_funding_rate_history not implemented for {}", self.exchange_name())
+    async fn get_funding_rate_history(
+        &self,
+        _symbol: &str,
+        _limit: u32,
+    ) -> Result<Vec<FundingRateEntry>> {
+        anyhow::bail!(
+            "get_funding_rate_history not implemented for {}",
+            self.exchange_name()
+        )
     }
 
     /// Get open interest history.
-    async fn get_open_interest_history(&self, _symbol: &str, _interval: &str, _limit: u32) -> Result<Vec<OpenInterestEntry>> {
-        anyhow::bail!("get_open_interest_history not implemented for {}", self.exchange_name())
+    async fn get_open_interest_history(
+        &self,
+        _symbol: &str,
+        _interval: &str,
+        _limit: u32,
+    ) -> Result<Vec<OpenInterestEntry>> {
+        anyhow::bail!(
+            "get_open_interest_history not implemented for {}",
+            self.exchange_name()
+        )
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -109,6 +124,7 @@ pub trait ExchangeTrader: Send + Sync {
     /// Places a market order and attaches take-profit / stop-loss in a single
     /// call on exchanges whose API supports it, which is meaningfully faster
     /// than submitting three separate orders.
+    #[allow(clippy::too_many_arguments)]
     async fn execute_fast_entry(
         &self,
         symbol: &str,
@@ -143,7 +159,10 @@ pub trait ExchangeTrader: Send + Sync {
 
     /// Get order status and information.
     async fn get_order_status(&self, _symbol: &str, _order_id: &str) -> Result<OrderInfo> {
-        anyhow::bail!("get_order_status not implemented for {}", self.exchange_name())
+        anyhow::bail!(
+            "get_order_status not implemented for {}",
+            self.exchange_name()
+        )
     }
 
     /// Close a position.
@@ -174,18 +193,32 @@ pub trait ExchangeTrader: Send + Sync {
     // ═══════════════════════════════════════════════════════════════════
 
     /// Test WebSocket orderbook subscription.
-    async fn test_ws_orderbook(&self, _symbol: &str, _depth: u32, _timeout_ms: u64) -> Result<WsTestResult> {
-        anyhow::bail!("test_ws_orderbook not implemented for {}", self.exchange_name())
+    async fn test_ws_orderbook(
+        &self,
+        _symbol: &str,
+        _depth: u32,
+        _timeout_ms: u64,
+    ) -> Result<WsTestResult> {
+        anyhow::bail!(
+            "test_ws_orderbook not implemented for {}",
+            self.exchange_name()
+        )
     }
 
     /// Test WebSocket trades subscription.
     async fn test_ws_trades(&self, _symbol: &str, _timeout_ms: u64) -> Result<WsTestResult> {
-        anyhow::bail!("test_ws_trades not implemented for {}", self.exchange_name())
+        anyhow::bail!(
+            "test_ws_trades not implemented for {}",
+            self.exchange_name()
+        )
     }
 
     /// Test WebSocket ticker subscription (includes OI, Funding Rate for perpetuals).
     async fn test_ws_ticker(&self, _symbol: &str, _timeout_ms: u64) -> Result<WsTestResult> {
-        anyhow::bail!("test_ws_ticker not implemented for {}", self.exchange_name())
+        anyhow::bail!(
+            "test_ws_ticker not implemented for {}",
+            self.exchange_name()
+        )
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -193,7 +226,12 @@ pub trait ExchangeTrader: Send + Sync {
     // ═══════════════════════════════════════════════════════════════════
 
     /// Test market order creation (dry run - validates without execution).
-    async fn test_market_order(&self, symbol: &str, side: OrderSide, usdt_amount: f64) -> Result<OrderTestResult> {
+    async fn test_market_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        usdt_amount: f64,
+    ) -> Result<OrderTestResult> {
         // Default: get price and calculate quantity
         let price = self.get_current_price(symbol).await?;
         let quantity = usdt_amount / price;
@@ -211,7 +249,13 @@ pub trait ExchangeTrader: Send + Sync {
     }
 
     /// Test limit order creation (dry run - validates without execution).
-    async fn test_limit_order(&self, symbol: &str, side: OrderSide, usdt_amount: f64, price: f64) -> Result<OrderTestResult> {
+    async fn test_limit_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        usdt_amount: f64,
+        price: f64,
+    ) -> Result<OrderTestResult> {
         let quantity = usdt_amount / price;
 
         Ok(OrderTestResult {
@@ -241,6 +285,9 @@ pub trait ExchangeTrader: Send + Sync {
         &self,
         _sender: broadcast::Sender<OrderUpdateEvent>,
     ) -> Result<JoinHandle<()>> {
-        anyhow::bail!("subscribe_order_updates not implemented for {}", self.exchange_name())
+        anyhow::bail!(
+            "subscribe_order_updates not implemented for {}",
+            self.exchange_name()
+        )
     }
 }

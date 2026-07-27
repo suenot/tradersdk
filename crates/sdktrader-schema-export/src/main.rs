@@ -62,7 +62,10 @@ fn main() {
 
     // Capabilities
     export_schema::<sdktrader_core::models::CapabilityStatus>(output_path, "capability_status");
-    export_schema::<sdktrader_core::models::ExchangeCapabilities>(output_path, "exchange_capabilities");
+    export_schema::<sdktrader_core::models::ExchangeCapabilities>(
+        output_path,
+        "exchange_capabilities",
+    );
 
     println!("Done! Exported schemas to {}/", output_dir);
 }
@@ -71,10 +74,14 @@ fn export_schema<T: schemars::JsonSchema>(output_path: &Path, name: &str) {
     let schema = schema_for!(T);
     let json = serde_json::to_string_pretty(&schema).expect("Failed to serialize schema");
     let file_path = output_path.join(format!("{}.json", name));
-    fs::write(&file_path, &json).expect(&format!("Failed to write {}", file_path.display()));
+    fs::write(&file_path, &json)
+        .unwrap_or_else(|_| panic!("Failed to write {}", file_path.display()));
     println!(
         "  {} -> {}",
-        std::any::type_name::<T>().rsplit("::").next().unwrap_or("?"),
+        std::any::type_name::<T>()
+            .rsplit("::")
+            .next()
+            .unwrap_or("?"),
         file_path.display()
     );
 }

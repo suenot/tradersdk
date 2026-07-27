@@ -1,13 +1,11 @@
 //! Public WebSocket stream service for Binance market data.
 
-use sdktrader_core::models::{MarketType, WsTestResult};
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
+use sdktrader_core::models::{MarketType, WsTestResult};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-use crate::config::{
-    FUTURES_WS_MAINNET, FUTURES_WS_TESTNET, SPOT_WS_MAINNET, SPOT_WS_TESTNET,
-};
+use crate::config::{FUTURES_WS_MAINNET, FUTURES_WS_TESTNET, SPOT_WS_MAINNET, SPOT_WS_TESTNET};
 
 /// Market data stream service for Binance.
 pub struct MarketStreamService {
@@ -18,7 +16,10 @@ pub struct MarketStreamService {
 impl MarketStreamService {
     /// Create a new market stream service.
     pub fn new(testnet: bool, market_type: MarketType) -> Self {
-        Self { testnet, market_type }
+        Self {
+            testnet,
+            market_type,
+        }
     }
 
     /// Get WebSocket URL for market data.

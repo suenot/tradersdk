@@ -1,10 +1,10 @@
 //! Helper functions for BingX exchange adapter.
 
-use sdktrader_core::models::{OrderStatus, OrderUpdateEvent};
-use tracing::{info, warn};
-use flate2::read::GzDecoder;
-use std::io::Read;
 use anyhow::Result;
+use flate2::read::GzDecoder;
+use sdktrader_core::models::{OrderStatus, OrderUpdateEvent};
+use std::io::Read;
+use tracing::{info, warn};
 
 use super::config::{INITIAL_RECONNECT_DELAY_SECS, MAX_RECONNECT_DELAY_SECS};
 
@@ -151,7 +151,10 @@ mod tests {
             parse_order_status("CANCELED"),
             OrderStatus::Cancelled
         ));
-        assert!(matches!(parse_order_status("FAILED"), OrderStatus::Rejected));
+        assert!(matches!(
+            parse_order_status("FAILED"),
+            OrderStatus::Rejected
+        ));
 
         // Case insensitivity
         assert!(matches!(parse_order_status("new"), OrderStatus::New));

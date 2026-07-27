@@ -2,17 +2,17 @@
 //!
 //! MEXC API v3 implementation with HMAC-SHA256 signing.
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, Orderbook, OrderbookLevel,
-    OrderUpdateEvent, TickerInfo, WsTestResult, TimeInForce,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use serde::Deserialize;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -421,8 +421,7 @@ impl ExchangeTrader for MexcTrader {
 
     async fn get_balance(&self) -> Result<AccountBalance> {
         if self.market_type == MarketType::Spot {
-            let response: SpotBalanceResponse =
-                self.signed_get_spot("/api/v3/account", "").await?;
+            let response: SpotBalanceResponse = self.signed_get_spot("/api/v3/account", "").await?;
 
             let usdt = response
                 .balances
@@ -453,12 +452,10 @@ impl ExchangeTrader for MexcTrader {
             let usdt = response
                 .data
                 .and_then(|balances| {
-                    balances.iter().find(|b| b.currency == "USDT").map(|b| {
-                        (
-                            b.available_balance + b.frozen_balance,
-                            b.available_balance,
-                        )
-                    })
+                    balances
+                        .iter()
+                        .find(|b| b.currency == "USDT")
+                        .map(|b| (b.available_balance + b.frozen_balance, b.available_balance))
                 })
                 .ok_or_else(|| anyhow::anyhow!("USDT balance not found in MEXC futures account"))?;
 
@@ -515,8 +512,7 @@ impl ExchangeTrader for MexcTrader {
             return Ok(true);
         }
 
-        let contract =
-            symbol.ok_or_else(|| anyhow::anyhow!("Symbol required for leverage"))?;
+        let contract = symbol.ok_or_else(|| anyhow::anyhow!("Symbol required for leverage"))?;
         let formatted = self.format_symbol(contract);
 
         // MEXC futures leverage is set per position side
@@ -631,7 +627,12 @@ impl ExchangeTrader for MexcTrader {
 
             let entry_price = if executed_qty > 0.0 {
                 Some(quote_qty / executed_qty)
-            } else if response.status.as_ref().map(|s| !s.is_empty()).unwrap_or(false) {
+            } else if response
+                .status
+                .as_ref()
+                .map(|s| !s.is_empty())
+                .unwrap_or(false)
+            {
                 // If not fully filled yet, use None
                 None
             } else {
@@ -1056,7 +1057,10 @@ impl ExchangeTrader for MexcTrader {
                     .filter_map(|level| {
                         let price: f64 = level[0].as_str()?.parse().ok()?;
                         let qty: f64 = level[1].as_str()?.parse().ok()?;
-                        Some(OrderbookLevel { price, quantity: qty })
+                        Some(OrderbookLevel {
+                            price,
+                            quantity: qty,
+                        })
                     })
                     .collect()
             })
@@ -1069,7 +1073,10 @@ impl ExchangeTrader for MexcTrader {
                     .filter_map(|level| {
                         let price: f64 = level[0].as_str()?.parse().ok()?;
                         let qty: f64 = level[1].as_str()?.parse().ok()?;
-                        Some(OrderbookLevel { price, quantity: qty })
+                        Some(OrderbookLevel {
+                            price,
+                            quantity: qty,
+                        })
                     })
                     .collect()
             })
@@ -1264,18 +1271,10 @@ impl ExchangeTrader for MexcTrader {
                     .as_str()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0.0),
-                bid_price: response["bidPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                ask_price: response["askPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                high_24h: response["highPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                low_24h: response["lowPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
+                bid_price: response["bidPrice"].as_str().and_then(|s| s.parse().ok()),
+                ask_price: response["askPrice"].as_str().and_then(|s| s.parse().ok()),
+                high_24h: response["highPrice"].as_str().and_then(|s| s.parse().ok()),
+                low_24h: response["lowPrice"].as_str().and_then(|s| s.parse().ok()),
                 volume_24h: response["volume"].as_str().and_then(|s| s.parse().ok()),
                 turnover_24h: response["quoteVolume"]
                     .as_str()

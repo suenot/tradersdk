@@ -4,10 +4,10 @@ use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{MarketType, WsTestResult};
-use crate::config::{SPOT_WS_URL, FUTURES_WS_URL};
+use crate::config::{FUTURES_WS_URL, SPOT_WS_URL};
 use crate::helpers::format_symbol;
+use sdktrader_core::models::{MarketType, WsTestResult};
+use sdktrader_core::utils::timestamp_ms;
 
 /// Gate.io public market data stream service.
 pub struct MarketStreamService {

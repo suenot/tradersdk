@@ -10,17 +10,17 @@
 //! API documentation: https://doc.xt.com/
 
 use crate::models::*;
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use futures_util::{SinkExt, StreamExt};
+use reqwest::Client;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
     OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::{Context, Result};
-use async_trait::async_trait;
-use futures_util::{SinkExt, StreamExt};
-use reqwest::Client;
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -498,7 +498,11 @@ impl ExchangeTrader for XtTrader {
                         if bal.currency.to_uppercase() == "USDT" {
                             let available: f64 = bal.available_amount.parse().unwrap_or(0.0);
                             let frozen: f64 = bal.frozen_amount.parse().unwrap_or(0.0);
-                            return Ok(AccountBalance::simple(available, available + frozen, "USDT"));
+                            return Ok(AccountBalance::simple(
+                                available,
+                                available + frozen,
+                                "USDT",
+                            ));
                         }
                     }
                 }
@@ -791,7 +795,11 @@ impl ExchangeTrader for XtTrader {
         }
     }
 
-    async fn get_funding_rate_history(&self, symbol: &str, limit: u32) -> Result<Vec<FundingRateEntry>> {
+    async fn get_funding_rate_history(
+        &self,
+        symbol: &str,
+        limit: u32,
+    ) -> Result<Vec<FundingRateEntry>> {
         if self.market_type != MarketType::Swap {
             anyhow::bail!("Funding rate only available for perpetual futures");
         }
@@ -829,7 +837,12 @@ impl ExchangeTrader for XtTrader {
         anyhow::bail!("Failed to get funding history")
     }
 
-    async fn get_open_interest_history(&self, symbol: &str, _interval: &str, _limit: u32) -> Result<Vec<OpenInterestEntry>> {
+    async fn get_open_interest_history(
+        &self,
+        symbol: &str,
+        _interval: &str,
+        _limit: u32,
+    ) -> Result<Vec<OpenInterestEntry>> {
         if self.market_type != MarketType::Swap {
             anyhow::bail!("Open interest only available for perpetual futures");
         }
@@ -903,7 +916,16 @@ impl ExchangeTrader for XtTrader {
         }
     }
 
-    async fn execute_fast_entry(&self, symbol: &str, direction: &str, usdt_amount: f64, leverage: u32, _tp_percent: Option<f64>, _sl_percent: Option<f64>, current_price: Option<f64>) -> Result<OrderResult> {
+    async fn execute_fast_entry(
+        &self,
+        symbol: &str,
+        direction: &str,
+        usdt_amount: f64,
+        leverage: u32,
+        _tp_percent: Option<f64>,
+        _sl_percent: Option<f64>,
+        current_price: Option<f64>,
+    ) -> Result<OrderResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let price = match current_price {
             Some(p) => p,
@@ -919,13 +941,26 @@ impl ExchangeTrader for XtTrader {
                 warn!("Failed to set leverage: {}", e);
             }
         }
-        let side = if direction.to_lowercase() == "long" { OrderSide::Buy } else { OrderSide::Sell };
-        self.place_market_order(&formatted_symbol, side, quantity).await
+        let side = if direction.to_lowercase() == "long" {
+            OrderSide::Buy
+        } else {
+            OrderSide::Sell
+        };
+        self.place_market_order(&formatted_symbol, side, quantity)
+            .await
     }
 
-    async fn place_market_order(&self, symbol: &str, side: OrderSide, quantity: f64) -> Result<OrderResult> {
+    async fn place_market_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        quantity: f64,
+    ) -> Result<OrderResult> {
         let formatted_symbol = self.format_symbol(symbol);
-        info!("XT market order: {} {} {}", formatted_symbol, side, quantity);
+        info!(
+            "XT market order: {} {} {}",
+            formatted_symbol, side, quantity
+        );
 
         match self.market_type {
             MarketType::Spot => {
@@ -936,7 +971,8 @@ impl ExchangeTrader for XtTrader {
                     "quantity": format!("{:.8}", quantity),
                 });
 
-                let response: XtSpotResponse<SpotOrderResult> = self.signed_spot_post("/order", &body).await?;
+                let response: XtSpotResponse<SpotOrderResult> =
+                    self.signed_spot_post("/order", &body).await?;
 
                 if response.is_success() {
                     if let Some(result) = response.result {
@@ -991,14 +1027,28 @@ impl ExchangeTrader for XtTrader {
                         });
                     }
                 }
-                Ok(OrderResult::failure(formatted_symbol, side, response.msg_info))
+                Ok(OrderResult::failure(
+                    formatted_symbol,
+                    side,
+                    response.msg_info,
+                ))
             }
         }
     }
 
-    async fn place_limit_order(&self, symbol: &str, side: OrderSide, quantity: f64, price: f64, _reduce_only: bool) -> Result<OrderResult> {
+    async fn place_limit_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        quantity: f64,
+        price: f64,
+        _reduce_only: bool,
+    ) -> Result<OrderResult> {
         let formatted_symbol = self.format_symbol(symbol);
-        info!("XT limit order: {} {} {} @ {}", formatted_symbol, side, quantity, price);
+        info!(
+            "XT limit order: {} {} {} @ {}",
+            formatted_symbol, side, quantity, price
+        );
 
         match self.market_type {
             MarketType::Spot => {
@@ -1010,7 +1060,8 @@ impl ExchangeTrader for XtTrader {
                     "price": format!("{:.8}", price),
                     "timeInForce": "GTC",
                 });
-                let response: XtSpotResponse<SpotOrderResult> = self.signed_spot_post("/order", &body).await?;
+                let response: XtSpotResponse<SpotOrderResult> =
+                    self.signed_spot_post("/order", &body).await?;
                 if response.is_success() {
                     if let Some(result) = response.result {
                         return Ok(OrderResult {
@@ -1031,7 +1082,10 @@ impl ExchangeTrader for XtTrader {
                 Ok(OrderResult::failure(formatted_symbol, side, response.mc))
             }
             MarketType::Swap => {
-                let position_side = match side { OrderSide::Buy => "LONG", OrderSide::Sell => "SHORT" };
+                let position_side = match side {
+                    OrderSide::Buy => "LONG",
+                    OrderSide::Sell => "SHORT",
+                };
                 let body = serde_json::json!({
                     "symbol": formatted_symbol,
                     "orderSide": match side { OrderSide::Buy => "BUY", OrderSide::Sell => "SELL" },
@@ -1041,7 +1095,9 @@ impl ExchangeTrader for XtTrader {
                     "positionSide": position_side,
                     "timeInForce": "GTC",
                 });
-                let response: XtFuturesResponse<FuturesOrderResult> = self.signed_futures_post("/future/trade/v1/order/create", &body).await?;
+                let response: XtFuturesResponse<FuturesOrderResult> = self
+                    .signed_futures_post("/future/trade/v1/order/create", &body)
+                    .await?;
                 if response.is_success() {
                     if let Some(result) = response.result {
                         return Ok(OrderResult {
@@ -1059,7 +1115,11 @@ impl ExchangeTrader for XtTrader {
                         });
                     }
                 }
-                Ok(OrderResult::failure(formatted_symbol, side, response.msg_info))
+                Ok(OrderResult::failure(
+                    formatted_symbol,
+                    side,
+                    response.msg_info,
+                ))
             }
         }
     }
@@ -1069,7 +1129,8 @@ impl ExchangeTrader for XtTrader {
         match self.market_type {
             MarketType::Spot => {
                 let endpoint = format!("/order/{}", order_id);
-                let response: XtSpotResponse<serde_json::Value> = self.signed_spot_delete(&endpoint, "").await?;
+                let response: XtSpotResponse<serde_json::Value> =
+                    self.signed_spot_delete(&endpoint, "").await?;
                 Ok(response.is_success())
             }
             MarketType::Swap => {
@@ -1077,7 +1138,9 @@ impl ExchangeTrader for XtTrader {
                     "orderId": order_id.parse::<i64>().unwrap_or(0),
                     "symbol": formatted_symbol,
                 });
-                let response: XtFuturesResponse<serde_json::Value> = self.signed_futures_post("/future/trade/v1/order/cancel", &body).await?;
+                let response: XtFuturesResponse<serde_json::Value> = self
+                    .signed_futures_post("/future/trade/v1/order/cancel", &body)
+                    .await?;
                 Ok(response.is_success())
             }
         }
@@ -1088,10 +1151,19 @@ impl ExchangeTrader for XtTrader {
         match self.market_type {
             MarketType::Spot => {
                 let endpoint = format!("/order/{}", order_id);
-                let response: XtSpotResponse<SpotOrderInfo> = self.signed_spot_get(&endpoint, "").await?;
+                let response: XtSpotResponse<SpotOrderInfo> =
+                    self.signed_spot_get(&endpoint, "").await?;
                 if let Some(order) = response.result {
-                    let side = if order.side == "BUY" { OrderSide::Buy } else { OrderSide::Sell };
-                    let order_type = if order.order_type == "MARKET" { OrderType::Market } else { OrderType::Limit };
+                    let side = if order.side == "BUY" {
+                        OrderSide::Buy
+                    } else {
+                        OrderSide::Sell
+                    };
+                    let order_type = if order.order_type == "MARKET" {
+                        OrderType::Market
+                    } else {
+                        OrderType::Limit
+                    };
                     return Ok(OrderInfo {
                         order_id: order.order_id,
                         client_order_id: order.client_order_id,
@@ -1102,7 +1174,8 @@ impl ExchangeTrader for XtTrader {
                         price: order.price.and_then(|p| p.parse().ok()).unwrap_or(0.0),
                         quantity: order.orig_qty.parse().unwrap_or(0.0),
                         filled_quantity: order.executed_qty.parse().unwrap_or(0.0),
-                        remaining_quantity: order.orig_qty.parse().unwrap_or(0.0) - order.executed_qty.parse().unwrap_or(0.0),
+                        remaining_quantity: order.orig_qty.parse().unwrap_or(0.0)
+                            - order.executed_qty.parse().unwrap_or(0.0),
                         avg_price: order.avg_price.and_then(|p| p.parse().ok()),
                         timestamp: order.time,
                         time_in_force: TimeInForce::GTC,
@@ -1112,11 +1185,25 @@ impl ExchangeTrader for XtTrader {
                 anyhow::bail!("Order not found")
             }
             MarketType::Swap => {
-                let params = format!("orderId={}&symbol={}", order_id.parse::<i64>().unwrap_or(0), formatted_symbol);
-                let response: XtFuturesResponse<FuturesOrderInfo> = self.signed_futures_get("/future/trade/v1/order/detail", &params).await?;
+                let params = format!(
+                    "orderId={}&symbol={}",
+                    order_id.parse::<i64>().unwrap_or(0),
+                    formatted_symbol
+                );
+                let response: XtFuturesResponse<FuturesOrderInfo> = self
+                    .signed_futures_get("/future/trade/v1/order/detail", &params)
+                    .await?;
                 if let Some(order) = response.result {
-                    let side = if order.order_side == "BUY" { OrderSide::Buy } else { OrderSide::Sell };
-                    let order_type = if order.order_type == "MARKET" { OrderType::Market } else { OrderType::Limit };
+                    let side = if order.order_side == "BUY" {
+                        OrderSide::Buy
+                    } else {
+                        OrderSide::Sell
+                    };
+                    let order_type = if order.order_type == "MARKET" {
+                        OrderType::Market
+                    } else {
+                        OrderType::Limit
+                    };
                     return Ok(OrderInfo {
                         order_id: order.order_id.to_string(),
                         client_order_id: order.client_order_id,
@@ -1127,7 +1214,8 @@ impl ExchangeTrader for XtTrader {
                         price: order.price.and_then(|p| p.parse().ok()).unwrap_or(0.0),
                         quantity: order.orig_qty.parse().unwrap_or(0.0),
                         filled_quantity: order.executed_qty.parse().unwrap_or(0.0),
-                        remaining_quantity: order.orig_qty.parse().unwrap_or(0.0) - order.executed_qty.parse().unwrap_or(0.0),
+                        remaining_quantity: order.orig_qty.parse().unwrap_or(0.0)
+                            - order.executed_qty.parse().unwrap_or(0.0),
                         avg_price: order.avg_price.and_then(|p| p.parse().ok()),
                         timestamp: order.created_time,
                         time_in_force: TimeInForce::GTC,
@@ -1147,9 +1235,16 @@ impl ExchangeTrader for XtTrader {
         let position = self.get_position(&formatted_symbol).await?;
         match position {
             Some(pos) => {
-                let size: f64 = pos.position_size.parse().context("Failed to parse position size")?;
+                let size: f64 = pos
+                    .position_size
+                    .parse()
+                    .context("Failed to parse position size")?;
                 if size.abs() < 0.000001 {
-                    return Ok(OrderResult::failure(formatted_symbol, OrderSide::Sell, "No position to close".to_string()));
+                    return Ok(OrderResult::failure(
+                        formatted_symbol,
+                        OrderSide::Sell,
+                        "No position to close".to_string(),
+                    ));
                 }
                 let (close_side, position_side) = if pos.position_side == "LONG" {
                     (OrderSide::Sell, "LONG")
@@ -1164,7 +1259,9 @@ impl ExchangeTrader for XtTrader {
                     "positionSide": position_side,
                     "reduceOnly": true,
                 });
-                let response: XtFuturesResponse<FuturesOrderResult> = self.signed_futures_post("/future/trade/v1/order/create", &body).await?;
+                let response: XtFuturesResponse<FuturesOrderResult> = self
+                    .signed_futures_post("/future/trade/v1/order/create", &body)
+                    .await?;
                 if response.is_success() {
                     if let Some(result) = response.result {
                         return Ok(OrderResult {
@@ -1182,17 +1279,31 @@ impl ExchangeTrader for XtTrader {
                         });
                     }
                 }
-                Ok(OrderResult::failure(formatted_symbol, close_side, response.msg_info))
+                Ok(OrderResult::failure(
+                    formatted_symbol,
+                    close_side,
+                    response.msg_info,
+                ))
             }
-            None => Ok(OrderResult::failure(formatted_symbol, OrderSide::Sell, "No position found".to_string())),
+            None => Ok(OrderResult::failure(
+                formatted_symbol,
+                OrderSide::Sell,
+                "No position found".to_string(),
+            )),
         }
     }
 
     fn format_symbol(&self, base_symbol: &str) -> String {
         let s = base_symbol.to_lowercase();
-        if s.contains('/') { return s.replace('/', "_"); }
-        if s.contains('-') { return s.replace('-', "_"); }
-        if s.contains('_') { return s; }
+        if s.contains('/') {
+            return s.replace('/', "_");
+        }
+        if s.contains('-') {
+            return s.replace('-', "_");
+        }
+        if s.contains('_') {
+            return s;
+        }
         if s.len() > 4 && s.ends_with("usdt") {
             let base = s.trim_end_matches("usdt");
             return format!("{}_usdt", base);
@@ -1208,18 +1319,39 @@ impl ExchangeTrader for XtTrader {
         format!("{}_usdt", s)
     }
 
-    async fn test_ws_orderbook(&self, symbol: &str, depth: u32, timeout_ms: u64) -> Result<WsTestResult> {
+    async fn test_ws_orderbook(
+        &self,
+        symbol: &str,
+        depth: u32,
+        timeout_ms: u64,
+    ) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let ws_url = self.ws_public_url();
         let start = std::time::Instant::now();
-        let (mut ws_stream, _) = connect_async(ws_url).await.context("Failed to connect to XT WebSocket")?;
+        let (mut ws_stream, _) = connect_async(ws_url)
+            .await
+            .context("Failed to connect to XT WebSocket")?;
         let connect_time = start.elapsed().as_millis() as u64;
-        let levels = if depth <= 5 { 5 } else if depth <= 10 { 10 } else if depth <= 20 { 20 } else { 50 };
-        let subscribe_msg = match self.market_type {
-            MarketType::Spot => serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": [format!("depth@{},{}", formatted_symbol, levels)]}),
-            MarketType::Swap => serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("depth@{},{}", formatted_symbol, levels)]}),
+        let levels = if depth <= 5 {
+            5
+        } else if depth <= 10 {
+            10
+        } else if depth <= 20 {
+            20
+        } else {
+            50
         };
-        ws_stream.send(Message::Text(subscribe_msg.to_string())).await?;
+        let subscribe_msg = match self.market_type {
+            MarketType::Spot => {
+                serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": [format!("depth@{},{}", formatted_symbol, levels)]})
+            }
+            MarketType::Swap => {
+                serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("depth@{},{}", formatted_symbol, levels)]})
+            }
+        };
+        ws_stream
+            .send(Message::Text(subscribe_msg.to_string()))
+            .await?;
         let mut messages_received = 0u32;
         let mut data_sample = None;
         let timeout = tokio::time::Duration::from_millis(timeout_ms);
@@ -1246,20 +1378,34 @@ impl ExchangeTrader for XtTrader {
             }
         }
         let _ = ws_stream.close(None).await;
-        Ok(WsTestResult { connected: true, latency_ms: connect_time, messages_received, subscription_type: format!("depth@{}", symbol), data_sample })
+        Ok(WsTestResult {
+            connected: true,
+            latency_ms: connect_time,
+            messages_received,
+            subscription_type: format!("depth@{}", symbol),
+            data_sample,
+        })
     }
 
     async fn test_ws_trades(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let ws_url = self.ws_public_url();
         let start = std::time::Instant::now();
-        let (mut ws_stream, _) = connect_async(ws_url).await.context("Failed to connect to XT WebSocket")?;
+        let (mut ws_stream, _) = connect_async(ws_url)
+            .await
+            .context("Failed to connect to XT WebSocket")?;
         let connect_time = start.elapsed().as_millis() as u64;
         let subscribe_msg = match self.market_type {
-            MarketType::Spot => serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": [format!("trade@{}", formatted_symbol)]}),
-            MarketType::Swap => serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("trade@{}", formatted_symbol)]}),
+            MarketType::Spot => {
+                serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": [format!("trade@{}", formatted_symbol)]})
+            }
+            MarketType::Swap => {
+                serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("trade@{}", formatted_symbol)]})
+            }
         };
-        ws_stream.send(Message::Text(subscribe_msg.to_string())).await?;
+        ws_stream
+            .send(Message::Text(subscribe_msg.to_string()))
+            .await?;
         let mut messages_received = 0u32;
         let mut data_sample = None;
         let timeout = tokio::time::Duration::from_millis(timeout_ms);
@@ -1283,20 +1429,34 @@ impl ExchangeTrader for XtTrader {
             }
         }
         let _ = ws_stream.close(None).await;
-        Ok(WsTestResult { connected: true, latency_ms: connect_time, messages_received, subscription_type: format!("trade@{}", symbol), data_sample })
+        Ok(WsTestResult {
+            connected: true,
+            latency_ms: connect_time,
+            messages_received,
+            subscription_type: format!("trade@{}", symbol),
+            data_sample,
+        })
     }
 
     async fn test_ws_ticker(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let ws_url = self.ws_public_url();
         let start = std::time::Instant::now();
-        let (mut ws_stream, _) = connect_async(ws_url).await.context("Failed to connect to XT WebSocket")?;
+        let (mut ws_stream, _) = connect_async(ws_url)
+            .await
+            .context("Failed to connect to XT WebSocket")?;
         let connect_time = start.elapsed().as_millis() as u64;
         let subscribe_msg = match self.market_type {
-            MarketType::Spot => serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": [format!("ticker@{}", formatted_symbol)]}),
-            MarketType::Swap => serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("agg_ticker@{}", formatted_symbol)]}),
+            MarketType::Spot => {
+                serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": [format!("ticker@{}", formatted_symbol)]})
+            }
+            MarketType::Swap => {
+                serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("agg_ticker@{}", formatted_symbol)]})
+            }
         };
-        ws_stream.send(Message::Text(subscribe_msg.to_string())).await?;
+        ws_stream
+            .send(Message::Text(subscribe_msg.to_string()))
+            .await?;
         let mut messages_received = 0u32;
         let mut data_sample = None;
         let timeout = tokio::time::Duration::from_millis(timeout_ms);
@@ -1324,10 +1484,19 @@ impl ExchangeTrader for XtTrader {
             MarketType::Spot => format!("ticker@{}", symbol),
             MarketType::Swap => format!("agg_ticker@{} (includes mark/index price)", symbol),
         };
-        Ok(WsTestResult { connected: true, latency_ms: connect_time, messages_received, subscription_type, data_sample })
+        Ok(WsTestResult {
+            connected: true,
+            latency_ms: connect_time,
+            messages_received,
+            subscription_type,
+            data_sample,
+        })
     }
 
-    async fn subscribe_order_updates(&self, sender: broadcast::Sender<OrderUpdateEvent>) -> Result<JoinHandle<()>> {
+    async fn subscribe_order_updates(
+        &self,
+        sender: broadcast::Sender<OrderUpdateEvent>,
+    ) -> Result<JoinHandle<()>> {
         let api_key = self.api_key.clone();
         let api_secret = self.api_secret.clone();
         let market_type = self.market_type;
@@ -1349,31 +1518,78 @@ impl ExchangeTrader for XtTrader {
                         );
                         let signature = hmac_sign(&api_secret, &payload_string);
                         let url = format!("{}{}", SPOT_URL, path);
-                        match client.post(&url).header("Content-Type", "application/json").header("xt-validate-algorithms", "HmacSHA256").header("xt-validate-appkey", &api_key).header("xt-validate-timestamp", timestamp.to_string()).header("xt-validate-recvwindow", recv_window).header("xt-validate-signature", signature).body("{}").send().await {
+                        match client
+                            .post(&url)
+                            .header("Content-Type", "application/json")
+                            .header("xt-validate-algorithms", "HmacSHA256")
+                            .header("xt-validate-appkey", &api_key)
+                            .header("xt-validate-timestamp", timestamp.to_string())
+                            .header("xt-validate-recvwindow", recv_window)
+                            .header("xt-validate-signature", signature)
+                            .body("{}")
+                            .send()
+                            .await
+                        {
                             Ok(resp) => {
                                 if let Ok(text) = resp.text().await {
-                                    if let Ok(json) = serde_json::from_str::<XtSpotResponse<WsTokenResponse>>(&text) {
-                                        if let Some(result) = json.result { result.access_token.or(result.token) } else { None }
-                                    } else { None }
-                                } else { None }
+                                    if let Ok(json) = serde_json::from_str::<
+                                        XtSpotResponse<WsTokenResponse>,
+                                    >(&text)
+                                    {
+                                        if let Some(result) = json.result {
+                                            result.access_token.or(result.token)
+                                        } else {
+                                            None
+                                        }
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
                             }
-                            Err(e) => { error!("[{}] Failed to get WS token: {}", exchange_name, e); None }
+                            Err(e) => {
+                                error!("[{}] Failed to get WS token: {}", exchange_name, e);
+                                None
+                            }
                         }
                     }
                     MarketType::Swap => {
                         let client = Client::new();
                         let timestamp = timestamp_ms();
                         let endpoint = "/future/user/v1/user/listen-key";
-                        let payload_string = format!("xt-validate-appkey={}&xt-validate-timestamp={}#{}", api_key, timestamp, endpoint);
+                        let payload_string = format!(
+                            "xt-validate-appkey={}&xt-validate-timestamp={}#{}",
+                            api_key, timestamp, endpoint
+                        );
                         let signature = hmac_sign(&api_secret, &payload_string);
                         let url = format!("{}{}", base_url, endpoint);
-                        match client.get(&url).header("Content-Type", "application/json").header("xt-validate-appkey", &api_key).header("xt-validate-timestamp", timestamp.to_string()).header("xt-validate-signature", signature).send().await {
+                        match client
+                            .get(&url)
+                            .header("Content-Type", "application/json")
+                            .header("xt-validate-appkey", &api_key)
+                            .header("xt-validate-timestamp", timestamp.to_string())
+                            .header("xt-validate-signature", signature)
+                            .send()
+                            .await
+                        {
                             Ok(resp) => {
                                 if let Ok(text) = resp.text().await {
-                                    if let Ok(json) = serde_json::from_str::<XtFuturesResponse<String>>(&text) { json.result } else { None }
-                                } else { None }
+                                    if let Ok(json) =
+                                        serde_json::from_str::<XtFuturesResponse<String>>(&text)
+                                    {
+                                        json.result
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
                             }
-                            Err(e) => { error!("[{}] Failed to get listen key: {}", exchange_name, e); None }
+                            Err(e) => {
+                                error!("[{}] Failed to get listen key: {}", exchange_name, e);
+                                None
+                            }
                         }
                     }
                 };
@@ -1386,23 +1602,32 @@ impl ExchangeTrader for XtTrader {
                         continue;
                     }
                 };
-                let ws_url = match market_type { MarketType::Spot => SPOT_WS_PRIVATE_URL, MarketType::Swap => FUTURES_WS_PRIVATE_URL };
+                let ws_url = match market_type {
+                    MarketType::Spot => SPOT_WS_PRIVATE_URL,
+                    MarketType::Swap => FUTURES_WS_PRIVATE_URL,
+                };
                 info!("[{}] Connecting to private WS: {}", exchange_name, ws_url);
                 match connect_async(ws_url).await {
                     Ok((mut ws_stream, _)) => {
                         let sub_msg = match market_type {
-                            MarketType::Spot => serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": ["order"], "listenKey": listen_key}),
-                            MarketType::Swap => serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("order@{}", listen_key)]}),
+                            MarketType::Spot => {
+                                serde_json::json!({"method": "subscribe", "id": format!("{}", timestamp_ms()), "params": ["order"], "listenKey": listen_key})
+                            }
+                            MarketType::Swap => {
+                                serde_json::json!({"method": "SUBSCRIBE", "id": format!("{}", timestamp_ms()), "params": [format!("order@{}", listen_key)]})
+                            }
                         };
                         if let Err(e) = ws_stream.send(Message::Text(sub_msg.to_string())).await {
                             error!("[{}] Failed to subscribe: {}", exchange_name, e);
-                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
+                                .await;
                             reconnect_delay = next_reconnect_delay(reconnect_delay);
                             continue;
                         }
                         info!("[{}] Subscribed to private order updates", exchange_name);
                         reconnect_delay = INITIAL_RECONNECT_DELAY_SECS;
-                        let mut ping_interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
+                        let mut ping_interval =
+                            tokio::time::interval(tokio::time::Duration::from_secs(20));
                         loop {
                             tokio::select! {
                                 msg = ws_stream.next() => {
@@ -1444,9 +1669,14 @@ impl ExchangeTrader for XtTrader {
                             }
                         }
                     }
-                    Err(e) => { error!("[{}] Failed to connect private WS: {}", exchange_name, e); }
+                    Err(e) => {
+                        error!("[{}] Failed to connect private WS: {}", exchange_name, e);
+                    }
                 }
-                warn!("[{}] Reconnecting private WS in {}s...", exchange_name, reconnect_delay);
+                warn!(
+                    "[{}] Reconnecting private WS in {}s...",
+                    exchange_name, reconnect_delay
+                );
                 tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
                 reconnect_delay = next_reconnect_delay(reconnect_delay);
             }
@@ -1460,8 +1690,12 @@ impl ExchangeTrader for XtTrader {
 mod tests {
     use super::*;
 
-    fn create_test_trader() -> XtTrader { XtTrader::new("test_key", "test_secret", false, MarketType::Spot) }
-    fn create_futures_trader() -> XtTrader { XtTrader::new("test_key", "test_secret", false, MarketType::Swap) }
+    fn create_test_trader() -> XtTrader {
+        XtTrader::new("test_key", "test_secret", false, MarketType::Spot)
+    }
+    fn create_futures_trader() -> XtTrader {
+        XtTrader::new("test_key", "test_secret", false, MarketType::Swap)
+    }
 
     #[test]
     fn test_format_symbol() {
@@ -1477,7 +1711,9 @@ mod tests {
     }
 
     #[test]
-    fn test_exchange_name() { assert_eq!(create_test_trader().exchange_name(), "xt"); }
+    fn test_exchange_name() {
+        assert_eq!(create_test_trader().exchange_name(), "xt");
+    }
 
     #[test]
     fn test_market_type() {
@@ -1495,7 +1731,10 @@ mod tests {
     fn test_parse_order_status() {
         assert_eq!(parse_order_status_str("NEW"), OrderStatus::New);
         assert_eq!(parse_order_status_str("FILLED"), OrderStatus::Filled);
-        assert_eq!(parse_order_status_str("PARTIALLY_FILLED"), OrderStatus::PartiallyFilled);
+        assert_eq!(
+            parse_order_status_str("PARTIALLY_FILLED"),
+            OrderStatus::PartiallyFilled
+        );
         assert_eq!(parse_order_status_str("CANCELLED"), OrderStatus::Cancelled);
     }
 
@@ -1511,7 +1750,13 @@ mod tests {
     fn test_ws_urls() {
         assert_eq!(create_test_trader().ws_public_url(), SPOT_WS_PUBLIC_URL);
         assert_eq!(create_test_trader().ws_private_url(), SPOT_WS_PRIVATE_URL);
-        assert_eq!(create_futures_trader().ws_public_url(), FUTURES_WS_PUBLIC_URL);
-        assert_eq!(create_futures_trader().ws_private_url(), FUTURES_WS_PRIVATE_URL);
+        assert_eq!(
+            create_futures_trader().ws_public_url(),
+            FUTURES_WS_PUBLIC_URL
+        );
+        assert_eq!(
+            create_futures_trader().ws_private_url(),
+            FUTURES_WS_PRIVATE_URL
+        );
     }
 }

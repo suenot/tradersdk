@@ -8,8 +8,8 @@
 
 // Re-export core crate and its public API
 pub use sdktrader_core;
-pub use sdktrader_core::ExchangeTrader;
 pub use sdktrader_core::ExchangeError;
+pub use sdktrader_core::ExchangeTrader;
 
 // Feature-gated exchange crate re-exports
 #[cfg(feature = "bybit")]
@@ -72,8 +72,8 @@ pub use sdktrader_weex as weex;
 #[cfg(feature = "ourbit")]
 pub use sdktrader_ourbit as ourbit;
 
-use sdktrader_core::models::MarketType;
 use anyhow::Result;
+use sdktrader_core::models::MarketType;
 use std::sync::Arc;
 
 /// Exchange credentials for API authentication.
@@ -290,6 +290,7 @@ pub fn create_trader(
 }
 
 /// Get list of supported exchanges.
+#[allow(clippy::vec_init_then_push)] // each push is behind its own #[cfg]
 pub fn supported_exchanges() -> Vec<&'static str> {
     let mut exchanges = Vec::new();
 

@@ -1,9 +1,9 @@
 //! REST API service for Binance.
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::models::MarketType;
 use anyhow::{Context, Result};
 use reqwest::Client;
+use sdktrader_core::models::MarketType;
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
 use serde::de::DeserializeOwned;
 use tracing::debug;
 
@@ -22,12 +22,7 @@ pub struct RestService {
 
 impl RestService {
     /// Create a new REST service.
-    pub fn new(
-        api_key: &str,
-        api_secret: &str,
-        testnet: bool,
-        market_type: MarketType,
-    ) -> Self {
+    pub fn new(api_key: &str, api_secret: &str, testnet: bool, market_type: MarketType) -> Self {
         let base_url = match (market_type, testnet) {
             (MarketType::Spot, false) => SPOT_MAINNET_URL,
             (MarketType::Spot, true) => SPOT_TESTNET_URL,
@@ -112,11 +107,7 @@ impl RestService {
     }
 
     /// Make a signed GET request.
-    pub async fn signed_get<T: DeserializeOwned>(
-        &self,
-        endpoint: &str,
-        params: &str,
-    ) -> Result<T> {
+    pub async fn signed_get<T: DeserializeOwned>(&self, endpoint: &str, params: &str) -> Result<T> {
         let timestamp = timestamp_ms();
         let query = if params.is_empty() {
             format!("timestamp={}", timestamp)
@@ -252,7 +243,10 @@ impl RestService {
 
     /// Get ticker price endpoint.
     pub fn ticker_price_endpoint(&self) -> &str {
-        self.endpoint_for(endpoints::SPOT_TICKER_PRICE, endpoints::FUTURES_TICKER_PRICE)
+        self.endpoint_for(
+            endpoints::SPOT_TICKER_PRICE,
+            endpoints::FUTURES_TICKER_PRICE,
+        )
     }
 
     /// Get 24hr ticker endpoint.

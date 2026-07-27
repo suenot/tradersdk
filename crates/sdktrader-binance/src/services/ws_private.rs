@@ -1,19 +1,21 @@
 //! Private WebSocket user data stream service for Binance.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{MarketType, OrderSide, OrderType, OrderUpdateEvent};
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{MarketType, OrderSide, OrderType, OrderUpdateEvent};
+use sdktrader_core::utils::timestamp_ms;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 
 use crate::config::{
-    endpoints, FUTURES_USER_WS_MAINNET, FUTURES_USER_WS_TESTNET, SPOT_USER_WS_MAINNET,
-    SPOT_USER_WS_TESTNET, LISTEN_KEY_KEEPALIVE_SECS,
+    endpoints, FUTURES_USER_WS_MAINNET, FUTURES_USER_WS_TESTNET, LISTEN_KEY_KEEPALIVE_SECS,
+    SPOT_USER_WS_MAINNET, SPOT_USER_WS_TESTNET,
 };
-use crate::helpers::{initial_reconnect_delay, log_order_update, next_reconnect_delay, parse_order_status};
+use crate::helpers::{
+    initial_reconnect_delay, log_order_update, next_reconnect_delay, parse_order_status,
+};
 
 /// User data stream service for Binance (order updates, position updates, etc.).
 pub struct UserDataService {
@@ -54,13 +56,10 @@ impl UserDataService {
     }
 
     /// Subscribe to order updates stream.
-    pub fn subscribe(
-        &self,
-        sender: broadcast::Sender<OrderUpdateEvent>,
-    ) -> JoinHandle<()> {
+    pub fn subscribe(&self, sender: broadcast::Sender<OrderUpdateEvent>) -> JoinHandle<()> {
         let api_key = self.api_key.clone();
         let base_url = self.base_url.clone();
-        let market_type = self.market_type;
+        let _market_type = self.market_type;
         let ws_base = self.ws_url().to_string();
         let listen_key_endpoint = self.listen_key_endpoint().to_string();
         let exchange_name = "binance".to_string();
@@ -134,8 +133,9 @@ impl UserDataService {
                         reconnect_delay = initial_reconnect_delay();
 
                         // Keepalive timer: renew listenKey every 30 minutes
-                        let mut keepalive_interval =
-                            tokio::time::interval(tokio::time::Duration::from_secs(LISTEN_KEY_KEEPALIVE_SECS));
+                        let mut keepalive_interval = tokio::time::interval(
+                            tokio::time::Duration::from_secs(LISTEN_KEY_KEEPALIVE_SECS),
+                        );
                         keepalive_interval.tick().await; // skip first immediate tick
 
                         loop {

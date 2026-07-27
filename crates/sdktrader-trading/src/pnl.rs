@@ -3,8 +3,8 @@
 //! Ported from Python `trading/pnl_calculator.py` and `trading/position_exit_manager.py` FIFOCalculator.
 //! Pure computation — no exchange API calls.
 
-use serde::{Deserialize, Serialize};
 use sdktrader_core::models::PositionSide;
+use serde::{Deserialize, Serialize};
 
 /// Simple PnL calculation result.
 #[derive(Debug, Clone, Serialize, Deserialize)]

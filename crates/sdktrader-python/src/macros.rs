@@ -219,6 +219,7 @@ macro_rules! declare_py_trader {
 
             /// Execute a fast market entry with optional TP/SL.
             #[pyo3(signature = (symbol, direction, usdt_amount, leverage, tp_percent=None, sl_percent=None, current_price=None))]
+            #[allow(clippy::too_many_arguments)]
             fn execute_fast_entry<'py>(
                 &self,
                 py: Python<'py>,

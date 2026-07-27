@@ -6,22 +6,24 @@
 //! - `MarketStreamService` - Public WebSocket market data
 //! - `UserDataService` - Private WebSocket order updates
 
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::utils::timestamp_ms;
+use anyhow::Result;
+use async_trait::async_trait;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
     OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::Result;
-use async_trait::async_trait;
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::error;
 
 use crate::config::endpoints;
 use crate::helpers::{format_symbol, parse_order_status};
-use crate::models::{FuturesAccountBalance, FuturesOrderResponse, SpotAccountBalance, SpotOrderResponse};
+use crate::models::{
+    FuturesAccountBalance, FuturesOrderResponse, SpotAccountBalance, SpotOrderResponse,
+};
 use crate::services::{MarketStreamService, RestService, UserDataService, WsTradingService};
 
 /// Gate.io exchange trader using service-based architecture.
@@ -120,10 +122,8 @@ impl ExchangeTrader for GateTrader {
     }
 
     async fn get_server_time(&self) -> Result<i64> {
-        let response: serde_json::Value = self
-            .rest_service
-            .public_get(endpoints::spot::TIME)
-            .await?;
+        let response: serde_json::Value =
+            self.rest_service.public_get(endpoints::spot::TIME).await?;
         Ok(response["server_time"].as_i64().unwrap_or(timestamp_ms()))
     }
 
@@ -462,16 +462,8 @@ impl ExchangeTrader for GateTrader {
         };
 
         let parse_level = |level: &serde_json::Value| -> Option<OrderbookLevel> {
-            let price: f64 = level["p"]
-                .as_str()
-                .or(level[0].as_str())?
-                .parse()
-                .ok()?;
-            let qty: f64 = level["s"]
-                .as_str()
-                .or(level[1].as_str())?
-                .parse()
-                .ok()?;
+            let price: f64 = level["p"].as_str().or(level[0].as_str())?.parse().ok()?;
+            let qty: f64 = level["s"].as_str().or(level[1].as_str())?.parse().ok()?;
             Some(OrderbookLevel {
                 price,
                 quantity: qty,
@@ -539,7 +531,9 @@ impl ExchangeTrader for GateTrader {
                 low_24h: ticker["low_24h"].as_str().and_then(|s| s.parse().ok()),
                 volume_24h: ticker["base_volume"].as_str().and_then(|s| s.parse().ok()),
                 turnover_24h: ticker["quote_volume"].as_str().and_then(|s| s.parse().ok()),
-                change_24h: ticker["change_percentage"].as_str().and_then(|s| s.parse().ok()),
+                change_24h: ticker["change_percentage"]
+                    .as_str()
+                    .and_then(|s| s.parse().ok()),
                 open_interest: None,
                 open_interest_value: None,
                 funding_rate: None,
@@ -572,8 +566,12 @@ impl ExchangeTrader for GateTrader {
             high_24h: ticker["high_24h"].as_str().and_then(|s| s.parse().ok()),
             low_24h: ticker["low_24h"].as_str().and_then(|s| s.parse().ok()),
             volume_24h: ticker["volume_24h"].as_str().and_then(|s| s.parse().ok()),
-            turnover_24h: ticker["volume_24h_usd"].as_str().and_then(|s| s.parse().ok()),
-            change_24h: ticker["change_percentage"].as_str().and_then(|s| s.parse().ok()),
+            turnover_24h: ticker["volume_24h_usd"]
+                .as_str()
+                .and_then(|s| s.parse().ok()),
+            change_24h: ticker["change_percentage"]
+                .as_str()
+                .and_then(|s| s.parse().ok()),
             open_interest: ticker["total_size"].as_str().and_then(|s| s.parse().ok()),
             open_interest_value: None,
             funding_rate: ticker["funding_rate"].as_str().and_then(|s| s.parse().ok()),

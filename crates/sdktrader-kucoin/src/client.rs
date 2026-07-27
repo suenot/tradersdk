@@ -7,18 +7,18 @@
 //!
 //! Signature: HMAC-SHA256 with base64 encoding, requires passphrase.
 
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{
-    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult,
-    OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
-    TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
+    OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo, TimeInForce,
+    WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use serde::Deserialize;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -154,7 +154,11 @@ impl KucoinTrader {
     }
 
     /// Make an authenticated POST request.
-    async fn auth_post(&self, endpoint: &str, body: &serde_json::Value) -> Result<serde_json::Value> {
+    async fn auth_post(
+        &self,
+        endpoint: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
         let timestamp = timestamp_ms().to_string();
         let body_str = serde_json::to_string(body)?;
         let signature = self.sign(&timestamp, "POST", endpoint, &body_str);
@@ -609,9 +613,7 @@ impl ExchangeTrader for KucoinTrader {
         let url = format!("{}{}", self.base_url(), endpoint);
         let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
 
-        Ok(response["data"]
-            .as_i64()
-            .unwrap_or_else(timestamp_ms))
+        Ok(response["data"].as_i64().unwrap_or_else(timestamp_ms))
     }
 
     async fn get_balance(&self) -> Result<AccountBalance> {
@@ -669,7 +671,9 @@ impl ExchangeTrader for KucoinTrader {
                 })
             }
             MarketType::Swap => {
-                let response = self.auth_get("/api/v1/account-overview?currency=USDT").await?;
+                let response = self
+                    .auth_get("/api/v1/account-overview?currency=USDT")
+                    .await?;
 
                 let data = response.get("data").unwrap_or(&serde_json::Value::Null);
 
@@ -714,7 +718,8 @@ impl ExchangeTrader for KucoinTrader {
                     self.base_url(),
                     formatted_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let price = response
                     .get("data")
@@ -731,7 +736,8 @@ impl ExchangeTrader for KucoinTrader {
                     self.base_url(),
                     formatted_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let price = response
                     .get("data")
@@ -755,7 +761,8 @@ impl ExchangeTrader for KucoinTrader {
                     self.base_url(),
                     formatted_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let data = response
                     .get("data")
@@ -767,36 +774,20 @@ impl ExchangeTrader for KucoinTrader {
                         .as_str()
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0),
-                    bid_price: data["buy"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    ask_price: data["sell"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    high_24h: data["high"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    low_24h: data["low"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    volume_24h: data["vol"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    turnover_24h: data["volValue"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    change_24h: data["changeRate"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
+                    bid_price: data["buy"].as_str().and_then(|s| s.parse().ok()),
+                    ask_price: data["sell"].as_str().and_then(|s| s.parse().ok()),
+                    high_24h: data["high"].as_str().and_then(|s| s.parse().ok()),
+                    low_24h: data["low"].as_str().and_then(|s| s.parse().ok()),
+                    volume_24h: data["vol"].as_str().and_then(|s| s.parse().ok()),
+                    turnover_24h: data["volValue"].as_str().and_then(|s| s.parse().ok()),
+                    change_24h: data["changeRate"].as_str().and_then(|s| s.parse().ok()),
                     open_interest: None,
                     open_interest_value: None,
                     funding_rate: None,
                     next_funding_time: None,
                     mark_price: None,
                     index_price: None,
-                    timestamp: data["time"]
-                        .as_i64()
-                        .unwrap_or_else(timestamp_ms),
+                    timestamp: data["time"].as_i64().unwrap_or_else(timestamp_ms),
                 })
             }
             MarketType::Swap => {
@@ -805,7 +796,8 @@ impl ExchangeTrader for KucoinTrader {
                     self.base_url(),
                     formatted_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let data = response
                     .get("data")
@@ -837,37 +829,20 @@ impl ExchangeTrader for KucoinTrader {
                         .as_str()
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0),
-                    bid_price: data["bestBidPrice"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    ask_price: data["bestAskPrice"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    high_24h: data["highPrice"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    low_24h: data["lowPrice"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
-                    volume_24h: data["volumeOf24h"]
-                        .as_f64(),
-                    turnover_24h: data["turnoverOf24h"]
-                        .as_f64(),
-                    change_24h: data["priceChgPct"]
-                        .as_f64(),
-                    open_interest: data["openInterest"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok()),
+                    bid_price: data["bestBidPrice"].as_str().and_then(|s| s.parse().ok()),
+                    ask_price: data["bestAskPrice"].as_str().and_then(|s| s.parse().ok()),
+                    high_24h: data["highPrice"].as_str().and_then(|s| s.parse().ok()),
+                    low_24h: data["lowPrice"].as_str().and_then(|s| s.parse().ok()),
+                    volume_24h: data["volumeOf24h"].as_f64(),
+                    turnover_24h: data["turnoverOf24h"].as_f64(),
+                    change_24h: data["priceChgPct"].as_f64(),
+                    open_interest: data["openInterest"].as_str().and_then(|s| s.parse().ok()),
                     open_interest_value: None,
                     funding_rate,
                     next_funding_time: None,
-                    mark_price: data["markPrice"]
-                        .as_f64(),
-                    index_price: data["indexPrice"]
-                        .as_f64(),
-                    timestamp: data["ts"]
-                        .as_i64()
-                        .unwrap_or_else(timestamp_ms),
+                    mark_price: data["markPrice"].as_f64(),
+                    index_price: data["indexPrice"].as_f64(),
+                    timestamp: data["ts"].as_i64().unwrap_or_else(timestamp_ms),
                 })
             }
         }
@@ -886,7 +861,8 @@ impl ExchangeTrader for KucoinTrader {
                     level,
                     formatted_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let data = response
                     .get("data")
@@ -922,9 +898,7 @@ impl ExchangeTrader for KucoinTrader {
                     symbol: formatted_symbol,
                     bids,
                     asks,
-                    timestamp: data["time"]
-                        .as_i64()
-                        .unwrap_or_else(timestamp_ms),
+                    timestamp: data["time"].as_i64().unwrap_or_else(timestamp_ms),
                 })
             }
             MarketType::Swap => {
@@ -935,7 +909,8 @@ impl ExchangeTrader for KucoinTrader {
                     depth.min(100),
                     formatted_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let data = response
                     .get("data")
@@ -971,9 +946,7 @@ impl ExchangeTrader for KucoinTrader {
                     symbol: formatted_symbol,
                     bids,
                     asks,
-                    timestamp: data["ts"]
-                        .as_i64()
-                        .unwrap_or_else(timestamp_ms),
+                    timestamp: data["ts"].as_i64().unwrap_or_else(timestamp_ms),
                 })
             }
         }
@@ -995,9 +968,15 @@ impl ExchangeTrader for KucoinTrader {
             "level": leverage.min(100) // KuCoin max leverage varies by symbol
         });
 
-        match self.auth_post("/api/v1/position/risk-limit-level/change", &body).await {
+        match self
+            .auth_post("/api/v1/position/risk-limit-level/change", &body)
+            .await
+        {
             Ok(_) => {
-                info!("KuCoin leverage set to {} for {}", leverage, formatted_symbol);
+                info!(
+                    "KuCoin leverage set to {} for {}",
+                    leverage, formatted_symbol
+                );
                 Ok(true)
             }
             Err(e) => {
@@ -1069,8 +1048,15 @@ impl ExchangeTrader for KucoinTrader {
         price: f64,
         reduce_only: bool,
     ) -> Result<OrderResult> {
-        self.place_order_rest(symbol, side, OrderType::Limit, quantity, Some(price), reduce_only)
-            .await
+        self.place_order_rest(
+            symbol,
+            side,
+            OrderType::Limit,
+            quantity,
+            Some(price),
+            reduce_only,
+        )
+        .await
     }
 
     async fn cancel_order(&self, symbol: &str, order_id: &str) -> Result<bool> {
@@ -1110,10 +1096,7 @@ impl ExchangeTrader for KucoinTrader {
             .get("data")
             .ok_or_else(|| anyhow::anyhow!("No order data"))?;
 
-        let symbol = data["symbol"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
+        let symbol = data["symbol"].as_str().unwrap_or("").to_string();
         let side_str = data["side"].as_str().unwrap_or("buy");
         let type_str = data["type"].as_str().unwrap_or("market");
 
@@ -1197,9 +1180,7 @@ impl ExchangeTrader for KucoinTrader {
         let response = self.auth_get(&endpoint).await?;
 
         let data = response.get("data").unwrap_or(&serde_json::Value::Null);
-        let current_qty = data["currentQty"]
-            .as_i64()
-            .unwrap_or(0);
+        let current_qty = data["currentQty"].as_i64().unwrap_or(0);
 
         if current_qty == 0 {
             return Ok(OrderResult::failure(
@@ -1217,8 +1198,15 @@ impl ExchangeTrader for KucoinTrader {
         };
 
         // Place close order with reduceOnly
-        self.place_order_rest(&formatted_symbol, side, OrderType::Market, quantity, None, true)
-            .await
+        self.place_order_rest(
+            &formatted_symbol,
+            side,
+            OrderType::Market,
+            quantity,
+            None,
+            true,
+        )
+        .await
     }
 
     fn format_symbol(&self, base: &str) -> String {
@@ -1278,7 +1266,11 @@ impl ExchangeTrader for KucoinTrader {
         let sub_id = uuid::Uuid::new_v4().to_string();
         let topic = match self.market_type {
             MarketType::Spot => format!("/market/level2:{}", formatted_symbol),
-            MarketType::Swap => format!("/contractMarket/level2Depth{}:{}", depth.min(50), formatted_symbol),
+            MarketType::Swap => format!(
+                "/contractMarket/level2Depth{}:{}",
+                depth.min(50),
+                formatted_symbol
+            ),
         };
 
         let subscribe_msg = serde_json::json!({
@@ -1290,7 +1282,7 @@ impl ExchangeTrader for KucoinTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1368,7 +1360,7 @@ impl ExchangeTrader for KucoinTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1446,7 +1438,7 @@ impl ExchangeTrader for KucoinTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1561,7 +1553,7 @@ impl ExchangeTrader for KucoinTrader {
                         });
 
                         if let Err(e) = ws_stream
-                            .send(Message::Text(subscribe_msg.to_string().into()))
+                            .send(Message::Text(subscribe_msg.to_string()))
                             .await
                         {
                             error!("[{}] Failed to subscribe: {}", exchange_name, e);
@@ -1651,7 +1643,7 @@ impl ExchangeTrader for KucoinTrader {
                                         "id": uuid::Uuid::new_v4().to_string(),
                                         "type": "ping"
                                     });
-                                    if let Err(e) = ws_stream.send(Message::Text(ping_msg.to_string().into())).await {
+                                    if let Err(e) = ws_stream.send(Message::Text(ping_msg.to_string())).await {
                                         error!("[{}] Ping failed: {}", exchange_name, e);
                                         break;
                                     }
@@ -1696,14 +1688,14 @@ async fn get_private_ws_token_inner(
 
     // Generate signature
     let message = format!("{}POST{}{}", timestamp, endpoint, body);
-    let mut mac = HmacSha256::new_from_slice(api_secret.as_bytes())
-        .expect("HMAC can take key of any size");
+    let mut mac =
+        HmacSha256::new_from_slice(api_secret.as_bytes()).expect("HMAC can take key of any size");
     mac.update(message.as_bytes());
     let signature = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
 
     // Encrypt passphrase
-    let mut mac2 = HmacSha256::new_from_slice(api_secret.as_bytes())
-        .expect("HMAC can take key of any size");
+    let mut mac2 =
+        HmacSha256::new_from_slice(api_secret.as_bytes()).expect("HMAC can take key of any size");
     mac2.update(passphrase.as_bytes());
     let encrypted_passphrase = general_purpose::STANDARD.encode(mac2.finalize().into_bytes());
 
@@ -1801,7 +1793,10 @@ mod tests {
         assert_eq!(parse_order_status_str("active"), OrderStatus::New);
         assert_eq!(parse_order_status_str("done"), OrderStatus::Filled);
         assert_eq!(parse_order_status_str("cancelled"), OrderStatus::Cancelled);
-        assert_eq!(parse_order_status_str("match"), OrderStatus::PartiallyFilled);
+        assert_eq!(
+            parse_order_status_str("match"),
+            OrderStatus::PartiallyFilled
+        );
     }
 
     #[test]

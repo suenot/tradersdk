@@ -1,13 +1,11 @@
 //! Public WebSocket stream service for Bybit market data.
 
-use sdktrader_core::models::{MarketType, WsTestResult};
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
+use sdktrader_core::models::{MarketType, WsTestResult};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-use crate::config::{
-    MAINNET_WS_SPOT_URL, MAINNET_WS_URL, TESTNET_WS_SPOT_URL, TESTNET_WS_URL,
-};
+use crate::config::{MAINNET_WS_SPOT_URL, MAINNET_WS_URL, TESTNET_WS_SPOT_URL, TESTNET_WS_URL};
 use crate::models::WsMessage;
 
 /// Market data stream service for Bybit.
@@ -19,7 +17,10 @@ pub struct MarketStreamService {
 impl MarketStreamService {
     /// Create a new market stream service.
     pub fn new(testnet: bool, market_type: MarketType) -> Self {
-        Self { testnet, market_type }
+        Self {
+            testnet,
+            market_type,
+        }
     }
 
     /// Get WebSocket URL for market data.

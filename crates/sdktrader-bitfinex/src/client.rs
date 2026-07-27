@@ -1,16 +1,16 @@
 //! Bitfinex exchange trader implementation.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult,
-    OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
-    TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
+    OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo, TimeInForce,
+    WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -39,12 +39,7 @@ pub struct BitfinexTrader {
 
 impl BitfinexTrader {
     /// Create a new Bitfinex trader.
-    pub fn new(
-        api_key: &str,
-        api_secret: &str,
-        testnet: bool,
-        market_type: MarketType,
-    ) -> Self {
+    pub fn new(api_key: &str, api_secret: &str, testnet: bool, market_type: MarketType) -> Self {
         Self {
             api_key: api_key.to_string(),
             api_secret: api_secret.to_string(),
@@ -186,7 +181,7 @@ impl BitfinexTrader {
         let auth_json = serde_json::to_string(&auth_msg)?;
         debug!("Sending WS auth: {}", auth_json);
 
-        ws_stream.send(Message::Text(auth_json.into())).await?;
+        ws_stream.send(Message::Text(auth_json)).await?;
 
         // Wait for auth response
         tokio::select! {
@@ -262,11 +257,11 @@ impl BitfinexTrader {
         debug!("Sending WS order: {}", order_json);
 
         // Send order
-        ws_stream.send(Message::Text(order_json.into())).await?;
+        ws_stream.send(Message::Text(order_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
-        let mut order_result = None;
+        let order_result;
 
         loop {
             tokio::select! {
@@ -291,7 +286,7 @@ impl BitfinexTrader {
                                                         if status == "SUCCESS" {
                                                             // Get order ID from notification data
                                                             if let Some(order_arr) = n_data.get(4).and_then(|v| v.as_array()) {
-                                                                let order_id = order_arr.get(0)
+                                                                let order_id = order_arr.first()
                                                                     .and_then(|v| v.as_i64())
                                                                     .map(|id| id.to_string())
                                                                     .unwrap_or_default();
@@ -386,7 +381,7 @@ impl BitfinexTrader {
         debug!("Sending WS cancel: {}", cancel_json);
 
         // Send cancel request
-        ws_stream.send(Message::Text(cancel_json.into())).await?;
+        ws_stream.send(Message::Text(cancel_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -545,7 +540,7 @@ impl ExchangeTrader for BitfinexTrader {
             let data: serde_json::Value = response.json().await?;
             // Response: [1] means operative, [0] means maintenance
             if let Some(arr) = data.as_array() {
-                if let Some(status) = arr.get(0).and_then(|v| v.as_i64()) {
+                if let Some(status) = arr.first().and_then(|v| v.as_i64()) {
                     return Ok(status == 1);
                 }
             }
@@ -571,7 +566,7 @@ impl ExchangeTrader for BitfinexTrader {
         // Wallet format: [WALLET_TYPE, CURRENCY, BALANCE, UNSETTLED_INTEREST, AVAILABLE_BALANCE, ...]
         for wallet in wallets {
             if wallet.len() >= 5 {
-                let wallet_type = wallet.get(0).and_then(|v| v.as_str()).unwrap_or("");
+                let wallet_type = wallet.first().and_then(|v| v.as_str()).unwrap_or("");
                 let currency = wallet.get(1).and_then(|v| v.as_str()).unwrap_or("");
                 let balance = wallet.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
                 let available = wallet.get(4).and_then(|v| v.as_f64()).unwrap_or(balance);
@@ -641,7 +636,7 @@ impl ExchangeTrader for BitfinexTrader {
             return Ok(TickerInfo {
                 symbol: formatted_symbol,
                 last_price: arr.get(6).and_then(|v| v.as_f64()).unwrap_or(0.0),
-                bid_price: arr.get(0).and_then(|v| v.as_f64()),
+                bid_price: arr.first().and_then(|v| v.as_f64()),
                 ask_price: arr.get(2).and_then(|v| v.as_f64()),
                 volume_24h: arr.get(7).and_then(|v| v.as_f64()),
                 turnover_24h: None,
@@ -689,7 +684,7 @@ impl ExchangeTrader for BitfinexTrader {
             for level in arr {
                 if let Some(level_arr) = level.as_array() {
                     if level_arr.len() >= 3 {
-                        let price = level_arr.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                        let price = level_arr.first().and_then(|v| v.as_f64()).unwrap_or(0.0);
                         let amount = level_arr.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
 
                         if amount > 0.0 {
@@ -709,9 +704,17 @@ impl ExchangeTrader for BitfinexTrader {
         }
 
         // Sort bids descending by price
-        bids.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap_or(std::cmp::Ordering::Equal));
+        bids.sort_by(|a, b| {
+            b.price
+                .partial_cmp(&a.price)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         // Sort asks ascending by price
-        asks.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
+        asks.sort_by(|a, b| {
+            a.price
+                .partial_cmp(&b.price)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(Orderbook {
             symbol: formatted_symbol,
@@ -773,8 +776,15 @@ impl ExchangeTrader for BitfinexTrader {
         let formatted_symbol = self.format_symbol(symbol);
 
         // Use WebSocket for order placement
-        self.place_order_ws(&formatted_symbol, side, OrderType::Market, quantity, None, false)
-            .await
+        self.place_order_ws(
+            &formatted_symbol,
+            side,
+            OrderType::Market,
+            quantity,
+            None,
+            false,
+        )
+        .await
     }
 
     async fn place_limit_order(
@@ -821,7 +831,11 @@ impl ExchangeTrader for BitfinexTrader {
             // Order format: [ID, GID, CID, SYMBOL, MTS_CREATE, MTS_UPDATE, AMOUNT, AMOUNT_ORIG,
             //                TYPE, TYPE_PREV, MTS_TIF, _, FLAGS, STATUS, _, _, PRICE, PRICE_AVG,
             //                PRICE_TRAILING, PRICE_AUX_LIMIT, _, _, _, NOTIFY, HIDDEN, PLACED_ID, ...]
-            let symbol = order.get(3).and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let symbol = order
+                .get(3)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             let amount = order.get(6).and_then(|v| v.as_f64()).unwrap_or(0.0);
             let amount_orig = order.get(7).and_then(|v| v.as_f64()).unwrap_or(0.0);
             let status_str = order.get(13).and_then(|v| v.as_str()).unwrap_or("");
@@ -830,9 +844,17 @@ impl ExchangeTrader for BitfinexTrader {
             let timestamp = order.get(4).and_then(|v| v.as_i64()).unwrap_or(0);
 
             let (side, quantity, filled_quantity) = if amount_orig > 0.0 {
-                (OrderSide::Buy, amount_orig.abs(), (amount_orig - amount).abs())
+                (
+                    OrderSide::Buy,
+                    amount_orig.abs(),
+                    (amount_orig - amount).abs(),
+                )
             } else {
-                (OrderSide::Sell, amount_orig.abs(), (amount_orig - amount).abs())
+                (
+                    OrderSide::Sell,
+                    amount_orig.abs(),
+                    (amount_orig - amount).abs(),
+                )
             };
 
             return Ok(OrderInfo {
@@ -866,6 +888,16 @@ impl ExchangeTrader for BitfinexTrader {
     }
 
     fn format_symbol(&self, base: &str) -> String {
+        // Already in Bitfinex format: a `t`/`f` prefix followed by an
+        // uppercase pair, e.g. tBTCUSD or fUSD. Checked before uppercasing,
+        // otherwise the prefix is indistinguishable from a ticker starting
+        // with T or F (TRX, FTM).
+        if let Some(rest) = base.strip_prefix('t').or_else(|| base.strip_prefix('f')) {
+            if rest.len() >= 3 && rest.chars().all(|c| c.is_ascii_uppercase() || c == ':') {
+                return base.to_string();
+            }
+        }
+
         let s = base.to_uppercase();
 
         // Handle BTC/USDT format
@@ -875,11 +907,6 @@ impl ExchangeTrader for BitfinexTrader {
                 // Bitfinex uses tBTCUSD format
                 return format!("t{}{}", parts[0], parts[1].replace("USDT", "UST"));
             }
-        }
-
-        // Already in Bitfinex format
-        if s.starts_with('t') || s.starts_with('f') {
-            return s;
         }
 
         // Handle BTCUSDT format
@@ -923,7 +950,7 @@ impl ExchangeTrader for BitfinexTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let timeout = tokio::time::Duration::from_millis(timeout_ms);
@@ -969,11 +996,7 @@ impl ExchangeTrader for BitfinexTrader {
         })
     }
 
-    async fn test_ws_trades(
-        &self,
-        symbol: &str,
-        timeout_ms: u64,
-    ) -> Result<WsTestResult> {
+    async fn test_ws_trades(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let start = std::time::Instant::now();
 
@@ -992,7 +1015,7 @@ impl ExchangeTrader for BitfinexTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let timeout = tokio::time::Duration::from_millis(timeout_ms);
@@ -1042,11 +1065,7 @@ impl ExchangeTrader for BitfinexTrader {
         })
     }
 
-    async fn test_ws_ticker(
-        &self,
-        symbol: &str,
-        timeout_ms: u64,
-    ) -> Result<WsTestResult> {
+    async fn test_ws_ticker(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let start = std::time::Instant::now();
 
@@ -1065,7 +1084,7 @@ impl ExchangeTrader for BitfinexTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let timeout = tokio::time::Duration::from_millis(timeout_ms);
@@ -1127,7 +1146,10 @@ impl ExchangeTrader for BitfinexTrader {
             let mut reconnect_delay = INITIAL_RECONNECT_DELAY_SECS;
 
             loop {
-                info!("[{}] Connecting to private WS: {}", exchange_name, AUTH_WS_URL);
+                info!(
+                    "[{}] Connecting to private WS: {}",
+                    exchange_name, AUTH_WS_URL
+                );
 
                 match connect_async(AUTH_WS_URL).await {
                     Ok((mut ws_stream, _)) => {
@@ -1160,10 +1182,7 @@ impl ExchangeTrader for BitfinexTrader {
                             "filter": ["trading"]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(auth_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(auth_msg.to_string())).await {
                             error!("[{}] Failed to send auth: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1180,7 +1199,10 @@ impl ExchangeTrader for BitfinexTrader {
                                         info!("[{}] Private WS authenticated", exchange_name);
                                         authenticated = true;
                                     } else {
-                                        let msg = resp.get("msg").and_then(|v| v.as_str()).unwrap_or("Unknown");
+                                        let msg = resp
+                                            .get("msg")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("Unknown");
                                         error!("[{}] Auth failed: {}", exchange_name, msg);
                                     }
                                 }
@@ -1215,7 +1237,7 @@ impl ExchangeTrader for BitfinexTrader {
                                                                     // Order update
                                                                     if let Some(order_arr) = arr.get(2).and_then(|v| v.as_array()) {
                                                                         // Order format: [ID, GID, CID, SYMBOL, ...]
-                                                                        let order_id = order_arr.get(0)
+                                                                        let order_id = order_arr.first()
                                                                             .and_then(|v| v.as_i64())
                                                                             .map(|id| id.to_string())
                                                                             .unwrap_or_default();
@@ -1322,7 +1344,7 @@ impl ExchangeTrader for BitfinexTrader {
                                 _ = ping_interval.tick() => {
                                     // Bitfinex expects ping as JSON: {"event": "ping"}
                                     let ping_msg = serde_json::json!({"event": "ping"});
-                                    if let Err(e) = ws_stream.send(Message::Text(ping_msg.to_string().into())).await {
+                                    if let Err(e) = ws_stream.send(Message::Text(ping_msg.to_string())).await {
                                         error!("[{}] Ping failed: {}", exchange_name, e);
                                         break;
                                     }
@@ -1373,6 +1395,11 @@ mod tests {
 
         // Test already formatted
         assert_eq!(trader.format_symbol("tBTCUSD"), "tBTCUSD");
+        assert_eq!(trader.format_symbol("fUSD"), "fUSD");
+
+        // Tickers starting with t/f are not Bitfinex-prefixed symbols
+        assert_eq!(trader.format_symbol("trx"), "tTRXUSD");
+        assert_eq!(trader.format_symbol("ftmusdt"), "tFTMUST");
 
         // Test lowercase
         assert_eq!(trader.format_symbol("eth"), "tETHUSD");
@@ -1381,13 +1408,25 @@ mod tests {
 
     #[test]
     fn test_parse_order_status() {
-        assert_eq!(parse_order_status_str("ACTIVE"), OrderStatus::PartiallyFilled);
+        assert_eq!(
+            parse_order_status_str("ACTIVE"),
+            OrderStatus::PartiallyFilled
+        );
         assert_eq!(parse_order_status_str("EXECUTED"), OrderStatus::Filled);
-        assert_eq!(parse_order_status_str("EXECUTED @ 50000.0"), OrderStatus::Filled);
+        assert_eq!(
+            parse_order_status_str("EXECUTED @ 50000.0"),
+            OrderStatus::Filled
+        );
         assert_eq!(parse_order_status_str("CANCELED"), OrderStatus::Cancelled);
         assert_eq!(parse_order_status_str("CANCELLED"), OrderStatus::Cancelled);
-        assert_eq!(parse_order_status_str("POSTONLY CANCELED"), OrderStatus::Cancelled);
-        assert_eq!(parse_order_status_str("INSUFFICIENT MARGIN"), OrderStatus::Rejected);
+        assert_eq!(
+            parse_order_status_str("POSTONLY CANCELED"),
+            OrderStatus::Cancelled
+        );
+        assert_eq!(
+            parse_order_status_str("INSUFFICIENT MARGIN"),
+            OrderStatus::Rejected
+        );
     }
 
     #[test]

@@ -3,9 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 /// Notification severity level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum NotificationLevel {
     Debug,
+    #[default]
     Info,
     Warning,
     Error,
@@ -22,12 +23,6 @@ impl NotificationLevel {
             NotificationLevel::Error => "\u{274c}",
             NotificationLevel::Critical => "\u{1f6a8}",
         }
-    }
-}
-
-impl Default for NotificationLevel {
-    fn default() -> Self {
-        Self::Info
     }
 }
 
@@ -92,12 +87,7 @@ impl NotificationMessage {
 
     /// Format as plain text.
     pub fn to_text(&self) -> String {
-        format!(
-            "{} {}\n\n{}",
-            self.level.emoji(),
-            self.title,
-            self.body
-        )
+        format!("{} {}\n\n{}", self.level.emoji(), self.title, self.body)
     }
 }
 

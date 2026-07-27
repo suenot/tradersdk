@@ -41,7 +41,8 @@ pub struct ServerTimeData {
 /// Phemex wallet balance response (for spot).
 #[derive(Debug, Deserialize)]
 pub struct SpotWalletData {
-    pub userID: i64,
+    #[serde(rename = "userID")]
+    pub user_id: i64,
     #[serde(default)]
     pub wallets: Vec<SpotWallet>,
 }

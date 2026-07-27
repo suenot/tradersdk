@@ -47,7 +47,10 @@ impl LeverageCacheManager {
     /// `Ok(false)` if file not found, `Err` on parse/IO errors.
     pub async fn load(&self) -> anyhow::Result<bool> {
         if !self.cache_file.exists() {
-            warn!("Leverage cache file not found: {}", self.cache_file.display());
+            warn!(
+                "Leverage cache file not found: {}",
+                self.cache_file.display()
+            );
             return Ok(false);
         }
 
@@ -73,11 +76,7 @@ impl LeverageCacheManager {
         let parsed: LeverageCacheFile = serde_json::from_str(&contents)?;
 
         // Count symbols for logging
-        let total_symbols: usize = parsed
-            .exchanges
-            .values()
-            .map(|ex| ex.symbols.len())
-            .sum();
+        let total_symbols: usize = parsed.exchanges.values().map(|ex| ex.symbols.len()).sum();
 
         // Update data under write lock
         {
@@ -164,10 +163,7 @@ impl LeverageCacheManager {
             if sym.starts_with(base) && sym.contains("USDT") {
                 if let Some(lev) = sd.max_leverage {
                     if lev > 0 {
-                        debug!(
-                            "Found leverage for {} via {}: {}x",
-                            symbol, sym, lev
-                        );
+                        debug!("Found leverage for {} via {}: {}x", symbol, sym, lev);
                         return lev;
                     }
                 }
@@ -347,10 +343,7 @@ mod tests {
         manager.load().await.unwrap();
 
         // "ETH/USDT:USDT" -> base = "ETH" -> finds "ETHUSDT"
-        assert_eq!(
-            manager.get_max_leverage("bybit", "ETH/USDT:USDT").await,
-            75
-        );
+        assert_eq!(manager.get_max_leverage("bybit", "ETH/USDT:USDT").await, 75);
     }
 
     #[tokio::test]
@@ -360,16 +353,10 @@ mod tests {
         manager.load().await.unwrap();
 
         // Unknown symbol -> default leverage
-        assert_eq!(
-            manager.get_max_leverage("bybit", "UNKNOWNUSDT").await,
-            10
-        );
+        assert_eq!(manager.get_max_leverage("bybit", "UNKNOWNUSDT").await, 10);
 
         // Unknown exchange -> default leverage
-        assert_eq!(
-            manager.get_max_leverage("binance", "BTCUSDT").await,
-            10
-        );
+        assert_eq!(manager.get_max_leverage("binance", "BTCUSDT").await, 10);
     }
 
     #[tokio::test]
@@ -388,10 +375,7 @@ mod tests {
         let manager = LeverageCacheManager::new(file.path().to_path_buf(), 60.0, 10);
         manager.load().await.unwrap();
 
-        assert_eq!(
-            manager.get_set_leverage("bybit", "BTCUSDT").await,
-            Some(20)
-        );
+        assert_eq!(manager.get_set_leverage("bybit", "BTCUSDT").await, Some(20));
     }
 
     #[tokio::test]

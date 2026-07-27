@@ -7,19 +7,19 @@
 //! - Signature = SHA256(METHOD + /v2/ + path + body(for POST) + timestamp + secret)
 //! - Headers: X-COINEX-KEY, X-COINEX-SIGN, X-COINEX-TIMESTAMP
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use futures_util::{SinkExt, StreamExt};
+use reqwest::Client;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
     OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::{Context, Result};
-use async_trait::async_trait;
-use futures_util::{SinkExt, StreamExt};
-use reqwest::Client;
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use serde::Deserialize;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -161,14 +161,16 @@ impl CoinexTrader {
         let text = response.text().await?;
         debug!("CoinEx response: {}", text);
 
-        let parsed: CoinexResponse<T> = serde_json::from_str(&text)
-            .context("Failed to parse CoinEx response")?;
+        let parsed: CoinexResponse<T> =
+            serde_json::from_str(&text).context("Failed to parse CoinEx response")?;
 
         if parsed.code != 0 {
             anyhow::bail!("CoinEx API error: {} - {}", parsed.code, parsed.message);
         }
 
-        parsed.data.ok_or_else(|| anyhow::anyhow!("No data in response"))
+        parsed
+            .data
+            .ok_or_else(|| anyhow::anyhow!("No data in response"))
     }
 
     /// Make a signed GET request.
@@ -202,14 +204,16 @@ impl CoinexTrader {
         let text = response.text().await?;
         debug!("CoinEx response: {}", text);
 
-        let parsed: CoinexResponse<T> = serde_json::from_str(&text)
-            .context("Failed to parse CoinEx response")?;
+        let parsed: CoinexResponse<T> =
+            serde_json::from_str(&text).context("Failed to parse CoinEx response")?;
 
         if parsed.code != 0 {
             anyhow::bail!("CoinEx API error: {} - {}", parsed.code, parsed.message);
         }
 
-        parsed.data.ok_or_else(|| anyhow::anyhow!("No data in response"))
+        parsed
+            .data
+            .ok_or_else(|| anyhow::anyhow!("No data in response"))
     }
 
     /// Make a signed POST request.
@@ -240,14 +244,16 @@ impl CoinexTrader {
         let text = response.text().await?;
         debug!("CoinEx response: {}", text);
 
-        let parsed: CoinexResponse<T> = serde_json::from_str(&text)
-            .context("Failed to parse CoinEx response")?;
+        let parsed: CoinexResponse<T> =
+            serde_json::from_str(&text).context("Failed to parse CoinEx response")?;
 
         if parsed.code != 0 {
             anyhow::bail!("CoinEx API error: {} - {}", parsed.code, parsed.message);
         }
 
-        parsed.data.ok_or_else(|| anyhow::anyhow!("No data in response"))
+        parsed
+            .data
+            .ok_or_else(|| anyhow::anyhow!("No data in response"))
     }
 
     /// Get WebSocket URL based on market type.
@@ -545,8 +551,15 @@ impl ExchangeTrader for CoinexTrader {
                 .map(|b| {
                     let available = b.available.parse::<f64>().unwrap_or(0.0);
                     let frozen = b.frozen.parse::<f64>().unwrap_or(0.0);
-                    let margin = b.margin.as_ref().and_then(|m| m.parse::<f64>().ok()).unwrap_or(0.0);
-                    let unrealized_pnl = b.unrealized_pnl.as_ref().and_then(|p| p.parse::<f64>().ok());
+                    let margin = b
+                        .margin
+                        .as_ref()
+                        .and_then(|m| m.parse::<f64>().ok())
+                        .unwrap_or(0.0);
+                    let unrealized_pnl = b
+                        .unrealized_pnl
+                        .as_ref()
+                        .and_then(|p| p.parse::<f64>().ok());
                     (available, frozen, margin, unrealized_pnl)
                 })
                 .unwrap_or((0.0, 0.0, 0.0, None));
@@ -577,7 +590,8 @@ impl ExchangeTrader for CoinexTrader {
         let tickers: Vec<serde_json::Value> = self.public_get(endpoint, &params).await?;
 
         if let Some(ticker) = tickers.first() {
-            let price_str = ticker.get("last")
+            let price_str = ticker
+                .get("last")
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| anyhow::anyhow!("No price in ticker"))?;
 
@@ -600,36 +614,44 @@ impl ExchangeTrader for CoinexTrader {
         let tickers: Vec<serde_json::Value> = self.public_get(endpoint, &params).await?;
 
         if let Some(ticker) = tickers.first() {
-            let last_price = ticker.get("last")
+            let last_price = ticker
+                .get("last")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
 
-            let high_24h = ticker.get("high")
+            let high_24h = ticker
+                .get("high")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok());
 
-            let low_24h = ticker.get("low")
+            let low_24h = ticker
+                .get("low")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok());
 
-            let volume_24h = ticker.get("volume")
+            let volume_24h = ticker
+                .get("volume")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok());
 
-            let turnover_24h = ticker.get("value")
+            let turnover_24h = ticker
+                .get("value")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok());
 
-            let bid_price = ticker.get("buy")
+            let bid_price = ticker
+                .get("buy")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok());
 
-            let ask_price = ticker.get("sell")
+            let ask_price = ticker
+                .get("sell")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok());
 
-            let open_price: f64 = ticker.get("open")
+            let open_price: f64 = ticker
+                .get("open")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
@@ -641,19 +663,40 @@ impl ExchangeTrader for CoinexTrader {
             };
 
             // Futures-specific fields
-            let (open_interest, open_interest_value, funding_rate, next_funding_time, mark_price, index_price) =
-                if self.market_type == MarketType::Swap {
-                    (
-                        ticker.get("open_interest").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()),
-                        ticker.get("open_interest_value").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()),
-                        ticker.get("funding_rate").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()),
-                        ticker.get("next_funding_time").and_then(|v| v.as_i64()),
-                        ticker.get("mark_price").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()),
-                        ticker.get("index_price").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()),
-                    )
-                } else {
-                    (None, None, None, None, None, None)
-                };
+            let (
+                open_interest,
+                open_interest_value,
+                funding_rate,
+                next_funding_time,
+                mark_price,
+                index_price,
+            ) = if self.market_type == MarketType::Swap {
+                (
+                    ticker
+                        .get("open_interest")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse().ok()),
+                    ticker
+                        .get("open_interest_value")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse().ok()),
+                    ticker
+                        .get("funding_rate")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse().ok()),
+                    ticker.get("next_funding_time").and_then(|v| v.as_i64()),
+                    ticker
+                        .get("mark_price")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse().ok()),
+                    ticker
+                        .get("index_price")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse().ok()),
+                )
+            } else {
+                (None, None, None, None, None, None)
+            };
 
             return Ok(TickerInfo {
                 symbol: formatted_symbol,
@@ -691,26 +734,34 @@ impl ExchangeTrader for CoinexTrader {
 
         let response: OrderbookResponseData = self.public_get(endpoint, &params).await?;
 
-        let bids: Vec<OrderbookLevel> = response.bids
+        let bids: Vec<OrderbookLevel> = response
+            .bids
             .iter()
             .filter_map(|level| {
                 if level.len() >= 2 {
                     let price = level[0].parse().ok()?;
                     let qty = level[1].parse().ok()?;
-                    Some(OrderbookLevel { price, quantity: qty })
+                    Some(OrderbookLevel {
+                        price,
+                        quantity: qty,
+                    })
                 } else {
                     None
                 }
             })
             .collect();
 
-        let asks: Vec<OrderbookLevel> = response.asks
+        let asks: Vec<OrderbookLevel> = response
+            .asks
             .iter()
             .filter_map(|level| {
                 if level.len() >= 2 {
                     let price = level[0].parse().ok()?;
                     let qty = level[1].parse().ok()?;
-                    Some(OrderbookLevel { price, quantity: qty })
+                    Some(OrderbookLevel {
+                        price,
+                        quantity: qty,
+                    })
                 } else {
                     None
                 }
@@ -721,7 +772,7 @@ impl ExchangeTrader for CoinexTrader {
             symbol: formatted_symbol,
             bids,
             asks,
-            timestamp: response.updated_at.unwrap_or_else(|| timestamp_ms()),
+            timestamp: response.updated_at.unwrap_or_else(timestamp_ms),
         })
     }
 
@@ -780,7 +831,8 @@ impl ExchangeTrader for CoinexTrader {
             OrderSide::Sell
         };
 
-        self.place_market_order(&formatted_symbol, side, quantity).await
+        self.place_market_order(&formatted_symbol, side, quantity)
+            .await
     }
 
     async fn place_market_order(
@@ -819,22 +871,17 @@ impl ExchangeTrader for CoinexTrader {
         let response: OrderResponse = match self.signed_post(endpoint, &body).await {
             Ok(r) => r,
             Err(e) => {
-                return Ok(OrderResult::failure(
-                    formatted_symbol,
-                    side,
-                    e.to_string(),
-                ));
+                return Ok(OrderResult::failure(formatted_symbol, side, e.to_string()));
             }
         };
 
-        let filled_qty: f64 = response.filled_amount
+        let filled_qty: f64 = response
+            .filled_amount
             .as_ref()
             .and_then(|s| s.parse().ok())
             .unwrap_or(quantity);
 
-        let avg_price: Option<f64> = response.avg_price
-            .as_ref()
-            .and_then(|s| s.parse().ok());
+        let avg_price: Option<f64> = response.avg_price.as_ref().and_then(|s| s.parse().ok());
 
         info!("CoinEx order placed: {}", response.order_id);
 
@@ -892,11 +939,7 @@ impl ExchangeTrader for CoinexTrader {
         let response: OrderResponse = match self.signed_post(endpoint, &body).await {
             Ok(r) => r,
             Err(e) => {
-                return Ok(OrderResult::failure(
-                    formatted_symbol,
-                    side,
-                    e.to_string(),
-                ));
+                return Ok(OrderResult::failure(formatted_symbol, side, e.to_string()));
             }
         };
 
@@ -959,7 +1002,10 @@ impl ExchangeTrader for CoinexTrader {
             "FUTURES"
         };
 
-        let params = format!("market={}&market_type={}&order_id={}", formatted_symbol, market_type, order_id);
+        let params = format!(
+            "market={}&market_type={}&order_id={}",
+            formatted_symbol, market_type, order_id
+        );
 
         let response: OrderResponse = self.signed_get(endpoint, &params).await?;
 
@@ -976,7 +1022,8 @@ impl ExchangeTrader for CoinexTrader {
         };
 
         let quantity: f64 = response.amount.parse().unwrap_or(0.0);
-        let filled_quantity: f64 = response.filled_amount
+        let filled_quantity: f64 = response
+            .filled_amount
             .as_ref()
             .and_then(|s| s.parse().ok())
             .unwrap_or(0.0);
@@ -1358,7 +1405,10 @@ impl ExchangeTrader for CoinexTrader {
                             "id": 1
                         });
 
-                        if let Err(e) = ws_stream.send(Message::Text(serde_json::to_string(&auth_msg).unwrap())).await {
+                        if let Err(e) = ws_stream
+                            .send(Message::Text(serde_json::to_string(&auth_msg).unwrap()))
+                            .await
+                        {
                             error!("[{}] Failed to send auth message: {}", exchange_name, e);
                             continue;
                         }
@@ -1370,13 +1420,19 @@ impl ExchangeTrader for CoinexTrader {
                             "id": 2
                         });
 
-                        if let Err(e) = ws_stream.send(Message::Text(serde_json::to_string(&subscribe_msg).unwrap())).await {
+                        if let Err(e) = ws_stream
+                            .send(Message::Text(
+                                serde_json::to_string(&subscribe_msg).unwrap(),
+                            ))
+                            .await
+                        {
                             error!("[{}] Failed to subscribe to orders: {}", exchange_name, e);
                             continue;
                         }
 
                         // Ping interval
-                        let mut ping_interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+                        let mut ping_interval =
+                            tokio::time::interval(tokio::time::Duration::from_secs(30));
                         ping_interval.tick().await;
 
                         loop {

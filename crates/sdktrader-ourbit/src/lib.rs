@@ -17,6 +17,6 @@ pub mod models;
 pub mod services;
 mod trader;
 
-pub use trader::OurbitTrader;
 pub use models::*;
 pub use services::RestService;
+pub use trader::OurbitTrader;

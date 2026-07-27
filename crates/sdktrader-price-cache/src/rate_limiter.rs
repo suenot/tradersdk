@@ -24,10 +24,7 @@ impl RateLimiter {
             60_000 / calls_per_minute as u64
         };
 
-        debug!(
-            calls_per_minute,
-            min_interval_ms, "RateLimiter created"
-        );
+        debug!(calls_per_minute, min_interval_ms, "RateLimiter created");
 
         Self {
             min_interval_ms,
@@ -98,7 +95,11 @@ mod tests {
         limiter.wait_if_needed().await;
         let elapsed = start.elapsed();
         // First call should be nearly instant (no wait needed since last_call is epoch 0)
-        assert!(elapsed.as_millis() < 100, "First call waited too long: {:?}", elapsed);
+        assert!(
+            elapsed.as_millis() < 100,
+            "First call waited too long: {:?}",
+            elapsed
+        );
     }
 
     #[tokio::test(start_paused = true)]

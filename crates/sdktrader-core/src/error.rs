@@ -100,6 +100,7 @@ impl ExchangeError {
     }
 
     /// Create an exchange-specific error.
+    #[allow(clippy::self_named_constructors)]
     pub fn exchange_error(exchange: &str, code: i32, message: impl Into<String>) -> Self {
         Self::ExchangeSpecific {
             exchange: exchange.to_string(),

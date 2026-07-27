@@ -1,8 +1,8 @@
-use std::collections::VecDeque;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use tracing::debug;
 
 /// Cache statistics snapshot.
@@ -122,7 +122,10 @@ impl MessageCache {
         // Evict oldest entries if cache is full
         while self.map.len() >= self.max_size {
             if let Some(oldest_hash) = self.order.pop_front() {
-                debug!("Evicted oldest message from cache: {}...", &oldest_hash[..8.min(oldest_hash.len())]);
+                debug!(
+                    "Evicted oldest message from cache: {}...",
+                    &oldest_hash[..8.min(oldest_hash.len())]
+                );
                 self.map.remove(&oldest_hash);
             } else {
                 break;

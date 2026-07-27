@@ -7,9 +7,9 @@ use pyo3::prelude::*;
 
 #[macro_use]
 mod macros;
-mod models;
 mod bingx;
 mod bybit;
+mod models;
 
 use bingx::PyBingxTrader;
 use bybit::PyBybitTrader;
@@ -22,7 +22,10 @@ fn sdktrader_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Module metadata
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__doc__", "High-performance Rust-backed exchange traders for Python")?;
+    m.add(
+        "__doc__",
+        "High-performance Rust-backed exchange traders for Python",
+    )?;
 
     Ok(())
 }

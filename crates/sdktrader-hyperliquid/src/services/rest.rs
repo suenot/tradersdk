@@ -15,7 +15,7 @@ use ethers::signers::{LocalWallet, Signer};
 #[cfg(feature = "signing")]
 use ethers::types::H256;
 
-use crate::config::{MAINNET_URL, TESTNET_URL, endpoints};
+use crate::config::{endpoints, MAINNET_URL, TESTNET_URL};
 
 /// Asset info with index for order placement.
 #[derive(Debug, Clone)]

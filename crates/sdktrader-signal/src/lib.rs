@@ -117,7 +117,10 @@ mod tests {
         let json = serde_json::to_string(&stats).unwrap();
         let deserialized: SignalStats = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(deserialized.total_messages_received, stats.total_messages_received);
+        assert_eq!(
+            deserialized.total_messages_received,
+            stats.total_messages_received
+        );
         assert_eq!(deserialized.deduplicated_count, stats.deduplicated_count);
         assert_eq!(deserialized.cache_size, stats.cache_size);
         assert_eq!(deserialized.cache_max_size, stats.cache_max_size);

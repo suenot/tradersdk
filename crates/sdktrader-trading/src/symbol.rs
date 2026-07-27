@@ -63,6 +63,7 @@ impl Exchange {
     /// Parse exchange name from a case-insensitive string.
     ///
     /// Returns `None` for unrecognized names.
+    #[allow(clippy::should_implement_trait)] // returns Option, not Result
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "bybit" => Some(Exchange::Bybit),
@@ -166,9 +167,7 @@ pub fn extract_base_symbol(symbol: &str) -> &str {
 
 /// Case-insensitive suffix stripping that returns the original slice prefix.
 fn strip_suffix_ci<'a>(s: &'a str, suffix: &str) -> Option<&'a str> {
-    if s.len() >= suffix.len()
-        && s[s.len() - suffix.len()..].eq_ignore_ascii_case(suffix)
-    {
+    if s.len() >= suffix.len() && s[s.len() - suffix.len()..].eq_ignore_ascii_case(suffix) {
         let base = &s[..s.len() - suffix.len()];
         if base.is_empty() {
             None
@@ -217,7 +216,10 @@ mod tests {
         assert_eq!(Exchange::from_str("Bybit"), Some(Exchange::Bybit));
         assert_eq!(Exchange::from_str("BYBIT"), Some(Exchange::Bybit));
         assert_eq!(Exchange::from_str("bingx"), Some(Exchange::BingX));
-        assert_eq!(Exchange::from_str("hyperliquid"), Some(Exchange::Hyperliquid));
+        assert_eq!(
+            Exchange::from_str("hyperliquid"),
+            Some(Exchange::Hyperliquid)
+        );
         assert_eq!(Exchange::from_str("okx"), Some(Exchange::OKX));
         assert_eq!(Exchange::from_str("gate"), Some(Exchange::Gate));
         assert_eq!(Exchange::from_str("mexc"), Some(Exchange::MEXC));
@@ -377,8 +379,14 @@ mod tests {
     #[test]
     fn test_roundtrip_extract_format() {
         let exchanges = [
-            "bybit", "binance", "bitget", "bingx", "hyperliquid",
-            "okx", "gate", "mexc",
+            "bybit",
+            "binance",
+            "bitget",
+            "bingx",
+            "hyperliquid",
+            "okx",
+            "gate",
+            "mexc",
         ];
         for ex in &exchanges {
             let formatted = format_symbol_for_exchange("BTC", ex);

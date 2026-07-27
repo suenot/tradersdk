@@ -6,15 +6,15 @@
 //! - MarketStreamService: Public market data streams
 //! - UserDataService: Private user data streams
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, Balance, ExchangeCapabilities, FundingRateEntry, MarketType,
-    OpenInterestEntry, OrderInfo, OrderResult, OrderSide, OrderType, OrderUpdateEvent,
-    Orderbook, OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use sdktrader_core::models::{
+    AccountBalance, Balance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
+    TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::{info, warn};
@@ -157,10 +157,8 @@ impl ExchangeTrader for BingxTrader {
     async fn get_balance(&self) -> Result<AccountBalance> {
         match self.market_type {
             MarketType::Swap => {
-                let response: BingxResponse<SwapBalanceData> = self
-                    .rest
-                    .signed_get(endpoints::SWAP_BALANCE, "")
-                    .await?;
+                let response: BingxResponse<SwapBalanceData> =
+                    self.rest.signed_get(endpoints::SWAP_BALANCE, "").await?;
 
                 if !response.is_success() {
                     anyhow::bail!("BingX API error: {}", response.error_message());
@@ -207,10 +205,8 @@ impl ExchangeTrader for BingxTrader {
                 Ok(AccountBalance::default())
             }
             MarketType::Spot => {
-                let response: BingxResponse<SpotBalanceData> = self
-                    .rest
-                    .signed_get(endpoints::SPOT_BALANCE, "")
-                    .await?;
+                let response: BingxResponse<SpotBalanceData> =
+                    self.rest.signed_get(endpoints::SPOT_BALANCE, "").await?;
 
                 if !response.is_success() {
                     anyhow::bail!("BingX API error: {}", response.error_message());
@@ -317,7 +313,10 @@ impl ExchangeTrader for BingxTrader {
             low_24h: data.low_price.as_ref().and_then(|s| s.parse().ok()),
             volume_24h: data.volume.as_ref().and_then(|s| s.parse().ok()),
             turnover_24h: data.quote_volume.as_ref().and_then(|s| s.parse().ok()),
-            change_24h: data.price_change_percent.as_ref().and_then(|s| s.parse().ok()),
+            change_24h: data
+                .price_change_percent
+                .as_ref()
+                .and_then(|s| s.parse().ok()),
             open_interest: data.open_interest.as_ref().and_then(|s| s.parse().ok()),
             open_interest_value: None,
             funding_rate: None, // Need separate API call
@@ -360,7 +359,10 @@ impl ExchangeTrader for BingxTrader {
                 if level.len() >= 2 {
                     let price: f64 = level[0].parse().ok()?;
                     let qty: f64 = level[1].parse().ok()?;
-                    Some(OrderbookLevel { price, quantity: qty })
+                    Some(OrderbookLevel {
+                        price,
+                        quantity: qty,
+                    })
                 } else {
                     None
                 }
@@ -374,7 +376,10 @@ impl ExchangeTrader for BingxTrader {
                 if level.len() >= 2 {
                     let price: f64 = level[0].parse().ok()?;
                     let qty: f64 = level[1].parse().ok()?;
-                    Some(OrderbookLevel { price, quantity: qty })
+                    Some(OrderbookLevel {
+                        price,
+                        quantity: qty,
+                    })
                 } else {
                     None
                 }
@@ -396,7 +401,10 @@ impl ExchangeTrader for BingxTrader {
 
         let symbol = symbol.ok_or_else(|| anyhow::anyhow!("Symbol required for leverage"))?;
         let formatted_symbol = format_symbol(symbol);
-        let params = format!("symbol={}&side=BOTH&leverage={}", formatted_symbol, leverage);
+        let params = format!(
+            "symbol={}&side=BOTH&leverage={}",
+            formatted_symbol, leverage
+        );
 
         let response: BingxResponse<LeverageData> = self
             .rest
@@ -681,7 +689,10 @@ impl ExchangeTrader for BingxTrader {
 
         match position {
             Some(pos) => {
-                let size: f64 = pos.position_amt.parse().context("Failed to parse position size")?;
+                let size: f64 = pos
+                    .position_amt
+                    .parse()
+                    .context("Failed to parse position size")?;
                 if size.abs() < 0.000001 {
                     return Ok(OrderResult::failure(
                         formatted_symbol,
@@ -707,10 +718,7 @@ impl ExchangeTrader for BingxTrader {
                 }
 
                 // Get the order IDs from the response
-                let order_ids = response
-                    .data
-                    .and_then(|d| d.success)
-                    .unwrap_or_default();
+                let order_ids = response.data.and_then(|d| d.success).unwrap_or_default();
 
                 let order_id = order_ids
                     .first()
@@ -787,10 +795,7 @@ impl ExchangeTrader for BingxTrader {
             .iter()
             .filter_map(|e| {
                 Some(FundingRateEntry {
-                    symbol: e
-                        .symbol
-                        .clone()
-                        .unwrap_or_else(|| formatted_symbol.clone()),
+                    symbol: e.symbol.clone().unwrap_or_else(|| formatted_symbol.clone()),
                     funding_rate: e.funding_rate.parse().ok()?,
                     funding_time: e.funding_time,
                 })
@@ -844,7 +849,9 @@ impl ExchangeTrader for BingxTrader {
         depth: u32,
         timeout_ms: u64,
     ) -> Result<WsTestResult> {
-        self.ws_stream.test_ws_orderbook(symbol, depth, timeout_ms).await
+        self.ws_stream
+            .test_ws_orderbook(symbol, depth, timeout_ms)
+            .await
     }
 
     async fn test_ws_trades(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {

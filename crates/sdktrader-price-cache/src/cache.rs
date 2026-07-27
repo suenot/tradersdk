@@ -47,7 +47,10 @@ impl PriceCache {
     /// Returns an error only if the file exists but cannot be read or parsed.
     pub async fn load(&self) -> Result<()> {
         if !self.cache_file.exists() {
-            info!("Cache file {:?} does not exist, starting empty", self.cache_file);
+            info!(
+                "Cache file {:?} does not exist, starting empty",
+                self.cache_file
+            );
             return Ok(());
         }
 
@@ -77,8 +80,8 @@ impl PriceCache {
     /// to avoid corruption if the process is interrupted mid-write.
     pub async fn save(&self) -> Result<()> {
         let data = self.data.read().await;
-        let json = serde_json::to_string_pretty(&*data)
-            .context("Failed to serialize cache data")?;
+        let json =
+            serde_json::to_string_pretty(&*data).context("Failed to serialize cache data")?;
         drop(data);
 
         // Ensure parent directory exists
@@ -243,14 +246,17 @@ mod tests {
         let cache = PriceCache::new(PathBuf::from("/tmp/test_cache_price_data.json"), 3.0);
 
         let mut prices = HashMap::new();
-        prices.insert("ETH".to_string(), PriceData {
-            symbol: "ETH".to_string(),
-            price_usd: 2200.0,
-            updated_at: 1700000000.0,
-            name: Some("Ethereum".to_string()),
-            market_cap_rank: Some(2),
-            price_change_24h: Some(1.5),
-        });
+        prices.insert(
+            "ETH".to_string(),
+            PriceData {
+                symbol: "ETH".to_string(),
+                price_usd: 2200.0,
+                updated_at: 1700000000.0,
+                name: Some("Ethereum".to_string()),
+                market_cap_rank: Some(2),
+                price_change_24h: Some(1.5),
+            },
+        );
         cache.update_prices(prices).await;
 
         let data = cache.get_price_data("ETH").await.unwrap();
@@ -348,14 +354,17 @@ mod tests {
         // Create and populate cache
         let cache = PriceCache::new(cache_file.clone(), 3.0);
         let mut prices = HashMap::new();
-        prices.insert("BTC".to_string(), PriceData {
-            symbol: "BTC".to_string(),
-            price_usd: 42000.0,
-            updated_at: 1700000000.0,
-            name: Some("Bitcoin".to_string()),
-            market_cap_rank: Some(1),
-            price_change_24h: Some(-2.5),
-        });
+        prices.insert(
+            "BTC".to_string(),
+            PriceData {
+                symbol: "BTC".to_string(),
+                price_usd: 42000.0,
+                updated_at: 1700000000.0,
+                name: Some("Bitcoin".to_string()),
+                market_cap_rank: Some(1),
+                price_change_24h: Some(-2.5),
+            },
+        );
         cache.update_prices(prices).await;
         cache.save().await.unwrap();
 

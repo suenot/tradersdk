@@ -152,7 +152,9 @@ impl<T: Send + 'static> RequestScheduler<T> {
                     Some(p) => p,
                     None => {
                         error!("No proxies available, skipping tick");
-                        let _ = tx.send(RequestResult::Error("No proxies available".into())).await;
+                        let _ = tx
+                            .send(RequestResult::Error("No proxies available".into()))
+                            .await;
                         continue;
                     }
                 };
@@ -233,11 +235,7 @@ mod tests {
     use crate::proxy_manager::ProxyManager;
 
     fn make_pm() -> Arc<Mutex<ProxyManager>> {
-        let pm = ProxyManager::new(
-            vec!["http:a:1:u:p:enabled".to_string()],
-            0,
-            false,
-        );
+        let pm = ProxyManager::new(vec!["http:a:1:u:p:enabled".to_string()], 0, false);
         Arc::new(Mutex::new(pm))
     }
 
@@ -303,11 +301,7 @@ mod tests {
         let mut rx = sched.start(|proxy| async move { Ok(format!("ok:{proxy}")) });
 
         // Wait for at least one result.
-        let result = tokio::time::timeout(
-            tokio::time::Duration::from_secs(2),
-            rx.recv(),
-        )
-        .await;
+        let result = tokio::time::timeout(tokio::time::Duration::from_secs(2), rx.recv()).await;
 
         sched.stop();
 
@@ -352,15 +346,9 @@ mod tests {
             pm,
         );
 
-        let mut rx = sched.start(|_proxy| async move {
-            Err("simulated failure".to_string())
-        });
+        let mut rx = sched.start(|_proxy| async move { Err("simulated failure".to_string()) });
 
-        let result = tokio::time::timeout(
-            tokio::time::Duration::from_secs(2),
-            rx.recv(),
-        )
-        .await;
+        let result = tokio::time::timeout(tokio::time::Duration::from_secs(2), rx.recv()).await;
 
         sched.stop();
 

@@ -1,7 +1,7 @@
 //! Gate.io helper functions.
 
-use sdktrader_core::models::{MarketType, OrderStatus};
 use hmac::{Hmac, Mac};
+use sdktrader_core::models::{MarketType, OrderStatus};
 use sha2::Sha512;
 use tracing::warn;
 
@@ -57,8 +57,8 @@ pub fn ws_auth_signature(api_secret: &str, channel: &str, event: &str, time: i64
     let sign_string = format!("channel={}&event={}&time={}", channel, event, time);
 
     type HmacSha512 = Hmac<Sha512>;
-    let mut mac = HmacSha512::new_from_slice(api_secret.as_bytes())
-        .expect("HMAC can take key of any size");
+    let mut mac =
+        HmacSha512::new_from_slice(api_secret.as_bytes()).expect("HMAC can take key of any size");
     mac.update(sign_string.as_bytes());
     hex::encode(mac.finalize().into_bytes())
 }

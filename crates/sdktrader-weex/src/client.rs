@@ -1,17 +1,16 @@
 //! Weex exchange trader implementation.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
-    OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo,
-    WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
+    OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo, WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -167,7 +166,7 @@ impl WeexTrader {
         let auth_json = serde_json::to_string(&auth_msg)?;
         debug!("Sending WS auth: {}", auth_json);
 
-        ws_stream.send(Message::Text(auth_json.into())).await?;
+        ws_stream.send(Message::Text(auth_json)).await?;
 
         // Wait for auth response
         let timeout = tokio::time::Duration::from_secs(5);
@@ -263,7 +262,7 @@ impl WeexTrader {
         debug!("Sending WS order: {}", order_json);
 
         // Send order
-        ws_stream.send(Message::Text(order_json.into())).await?;
+        ws_stream.send(Message::Text(order_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -409,10 +408,7 @@ impl WeexTrader {
 
         if response["code"].as_str() == Some("00000") {
             let data = &response["data"];
-            let order_id = data["orderId"]
-                .as_str()
-                .unwrap_or("")
-                .to_string();
+            let order_id = data["orderId"].as_str().unwrap_or("").to_string();
 
             Ok(OrderResult {
                 success: true,
@@ -464,7 +460,7 @@ impl WeexTrader {
         debug!("Sending WS cancel: {}", cancel_json);
 
         // Send cancel request
-        ws_stream.send(Message::Text(cancel_json.into())).await?;
+        ws_stream.send(Message::Text(cancel_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -577,7 +573,7 @@ impl WeexTrader {
         debug!("Sending WS amend: {}", amend_json);
 
         // Send amend request
-        ws_stream.send(Message::Text(amend_json.into())).await?;
+        ws_stream.send(Message::Text(amend_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -786,7 +782,11 @@ impl ExchangeTrader for WeexTrader {
             .await?;
         Ok(response["data"]["serverTime"]
             .as_i64()
-            .or_else(|| response["data"]["serverTime"].as_str().and_then(|s| s.parse().ok()))
+            .or_else(|| {
+                response["data"]["serverTime"]
+                    .as_str()
+                    .and_then(|s| s.parse().ok())
+            })
             .unwrap_or(timestamp_ms()))
     }
 
@@ -797,9 +797,7 @@ impl ExchangeTrader for WeexTrader {
 
         let headers = self.auth_headers("GET", &full_path, "");
 
-        let mut request = self
-            .client
-            .get(format!("{}{}", self.base_url, full_path));
+        let mut request = self.client.get(format!("{}{}", self.base_url, full_path));
 
         for (key, value) in headers {
             request = request.header(&key, &value);
@@ -824,18 +822,14 @@ impl ExchangeTrader for WeexTrader {
                 .as_str()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
-            let unrealized_pnl = data["unrealizedPL"]
-                .as_str()
-                .and_then(|s| s.parse().ok());
+            let unrealized_pnl = data["unrealizedPL"].as_str().and_then(|s| s.parse().ok());
 
             Ok(AccountBalance {
                 total_balance: equity,
                 available_balance: available,
                 currency: "USDT".to_string(),
                 margin_balance: Some(equity),
-                used_margin: data["locked"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
+                used_margin: data["locked"].as_str().and_then(|s| s.parse().ok()),
                 unrealized_pnl,
                 realized_pnl: None,
                 balances: vec![],
@@ -854,7 +848,9 @@ impl ExchangeTrader for WeexTrader {
             ),
             MarketType::Swap => format!(
                 "{}/api/v2/mix/market/ticker?symbol={}&productType={}",
-                self.base_url, formatted_symbol, self.product_type()
+                self.base_url,
+                formatted_symbol,
+                self.product_type()
             ),
         };
 
@@ -884,7 +880,9 @@ impl ExchangeTrader for WeexTrader {
             ),
             MarketType::Swap => format!(
                 "{}/api/v2/mix/market/ticker?symbol={}&productType={}",
-                self.base_url, formatted_symbol, self.product_type()
+                self.base_url,
+                formatted_symbol,
+                self.product_type()
             ),
         };
 
@@ -904,12 +902,8 @@ impl ExchangeTrader for WeexTrader {
                 .as_str()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0),
-            bid_price: data["bidPr"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
-            ask_price: data["askPr"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
+            bid_price: data["bidPr"].as_str().and_then(|s| s.parse().ok()),
+            ask_price: data["askPr"].as_str().and_then(|s| s.parse().ok()),
             volume_24h: data["baseVolume"]
                 .as_str()
                 .and_then(|s| s.parse().ok())
@@ -918,32 +912,20 @@ impl ExchangeTrader for WeexTrader {
                 .as_str()
                 .and_then(|s| s.parse().ok())
                 .or_else(|| data["quoteVol"].as_str().and_then(|s| s.parse().ok())),
-            high_24h: data["high24h"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
-            low_24h: data["low24h"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
-            change_24h: data["change24h"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
+            high_24h: data["high24h"].as_str().and_then(|s| s.parse().ok()),
+            low_24h: data["low24h"].as_str().and_then(|s| s.parse().ok()),
+            change_24h: data["change24h"].as_str().and_then(|s| s.parse().ok()),
             open_interest: data["openInterest"]
                 .as_str()
                 .and_then(|s| s.parse().ok())
                 .or_else(|| data["holdingAmount"].as_str().and_then(|s| s.parse().ok())),
             open_interest_value: None,
-            funding_rate: data["fundingRate"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
+            funding_rate: data["fundingRate"].as_str().and_then(|s| s.parse().ok()),
             next_funding_time: data["nextFundingTime"]
                 .as_str()
                 .and_then(|s| s.parse().ok()),
-            mark_price: data["markPrice"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
-            index_price: data["indexPrice"]
-                .as_str()
-                .and_then(|s| s.parse().ok()),
+            mark_price: data["markPrice"].as_str().and_then(|s| s.parse().ok()),
+            index_price: data["indexPrice"].as_str().and_then(|s| s.parse().ok()),
             timestamp: data["ts"]
                 .as_str()
                 .and_then(|s| s.parse().ok())
@@ -962,7 +944,10 @@ impl ExchangeTrader for WeexTrader {
             ),
             MarketType::Swap => format!(
                 "{}/api/v2/mix/market/depth?symbol={}&productType={}&limit={}",
-                self.base_url, formatted_symbol, self.product_type(), depth
+                self.base_url,
+                formatted_symbol,
+                self.product_type(),
+                depth
             ),
         };
 
@@ -1035,7 +1020,8 @@ impl ExchangeTrader for WeexTrader {
             request = request.header(&key, &value);
         }
 
-        let response: serde_json::Value = request.body(body_str.clone()).send().await?.json().await?;
+        let response: serde_json::Value =
+            request.body(body_str.clone()).send().await?.json().await?;
 
         debug!("Set leverage response (long): {:?}", response);
 
@@ -1107,8 +1093,15 @@ impl ExchangeTrader for WeexTrader {
         };
 
         // Place order via REST API (more reliable under load)
-        self.place_order_rest(&formatted_symbol, side, OrderType::Market, quantity, None, false)
-            .await
+        self.place_order_rest(
+            &formatted_symbol,
+            side,
+            OrderType::Market,
+            quantity,
+            None,
+            false,
+        )
+        .await
     }
 
     async fn place_market_order(
@@ -1121,14 +1114,28 @@ impl ExchangeTrader for WeexTrader {
 
         // Try WebSocket first, fall back to REST
         match self
-            .place_order_ws(&formatted_symbol, side, OrderType::Market, quantity, None, false)
+            .place_order_ws(
+                &formatted_symbol,
+                side,
+                OrderType::Market,
+                quantity,
+                None,
+                false,
+            )
             .await
         {
             Ok(result) => Ok(result),
             Err(e) => {
                 warn!("WS order failed, falling back to REST: {}", e);
-                self.place_order_rest(&formatted_symbol, side, OrderType::Market, quantity, None, false)
-                    .await
+                self.place_order_rest(
+                    &formatted_symbol,
+                    side,
+                    OrderType::Market,
+                    quantity,
+                    None,
+                    false,
+                )
+                .await
             }
         }
     }
@@ -1195,9 +1202,7 @@ impl ExchangeTrader for WeexTrader {
 
         let headers = self.auth_headers("GET", &full_path, "");
 
-        let mut request = self
-            .client
-            .get(format!("{}{}", self.base_url, full_path));
+        let mut request = self.client.get(format!("{}{}", self.base_url, full_path));
 
         for (key, value) in headers {
             request = request.header(&key, &value);
@@ -1272,9 +1277,7 @@ impl ExchangeTrader for WeexTrader {
                 .or_else(|| data["createTime"].as_str().and_then(|s| s.parse().ok()))
                 .unwrap_or(0),
             time_in_force: Default::default(),
-            reduce_only: data["reduceOnly"]
-                .as_bool()
-                .unwrap_or(false),
+            reduce_only: data["reduceOnly"].as_bool().unwrap_or(false),
         })
     }
 
@@ -1299,7 +1302,8 @@ impl ExchangeTrader for WeexTrader {
             request = request.header(&key, &value);
         }
 
-        let response: serde_json::Value = request.body(body_str.clone()).send().await?.json().await?;
+        let response: serde_json::Value =
+            request.body(body_str.clone()).send().await?.json().await?;
 
         debug!("Close position response (long): {:?}", response);
 
@@ -1325,8 +1329,7 @@ impl ExchangeTrader for WeexTrader {
 
         debug!("Close position response (short): {:?}", response2);
 
-        if response["code"].as_str() == Some("00000")
-            || response2["code"].as_str() == Some("00000")
+        if response["code"].as_str() == Some("00000") || response2["code"].as_str() == Some("00000")
         {
             Ok(OrderResult {
                 success: true,
@@ -1371,7 +1374,12 @@ impl ExchangeTrader for WeexTrader {
         }
     }
 
-    async fn test_ws_orderbook(&self, symbol: &str, depth: u32, timeout_ms: u64) -> Result<WsTestResult> {
+    async fn test_ws_orderbook(
+        &self,
+        symbol: &str,
+        depth: u32,
+        timeout_ms: u64,
+    ) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let ws_url = self.ws_public_url();
 
@@ -1401,7 +1409,7 @@ impl ExchangeTrader for WeexTrader {
         };
 
         ws_stream
-            .send(Message::Text(serde_json::to_string(&sub_msg)?.into()))
+            .send(Message::Text(serde_json::to_string(&sub_msg)?))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1473,7 +1481,7 @@ impl ExchangeTrader for WeexTrader {
         };
 
         ws_stream
-            .send(Message::Text(serde_json::to_string(&sub_msg)?.into()))
+            .send(Message::Text(serde_json::to_string(&sub_msg)?))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1545,7 +1553,7 @@ impl ExchangeTrader for WeexTrader {
         };
 
         ws_stream
-            .send(Message::Text(serde_json::to_string(&sub_msg)?.into()))
+            .send(Message::Text(serde_json::to_string(&sub_msg)?))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1642,10 +1650,7 @@ impl ExchangeTrader for WeexTrader {
                             }]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(auth_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(auth_msg.to_string())).await {
                             error!("[{}] Failed to send login: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1680,10 +1685,7 @@ impl ExchangeTrader for WeexTrader {
                             "args": [{"instType": inst_type, "channel": "orders", "instId": "default"}]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(sub_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(sub_msg.to_string())).await {
                             error!("[{}] Failed to subscribe: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;

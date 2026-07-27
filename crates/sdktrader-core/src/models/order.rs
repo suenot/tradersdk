@@ -31,10 +31,11 @@ impl From<&str> for OrderSide {
 }
 
 /// Order type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum OrderType {
+    #[default]
     Market,
     Limit,
     StopMarket,
@@ -55,12 +56,6 @@ impl std::fmt::Display for OrderType {
             OrderType::TakeProfitLimit => write!(f, "TAKE_PROFIT_LIMIT"),
             OrderType::TrailingStop => write!(f, "TRAILING_STOP"),
         }
-    }
-}
-
-impl Default for OrderType {
-    fn default() -> Self {
-        Self::Market
     }
 }
 
@@ -90,13 +85,19 @@ impl OrderStatus {
     pub fn is_final(&self) -> bool {
         matches!(
             self,
-            OrderStatus::Filled | OrderStatus::Cancelled | OrderStatus::Rejected | OrderStatus::Expired
+            OrderStatus::Filled
+                | OrderStatus::Cancelled
+                | OrderStatus::Rejected
+                | OrderStatus::Expired
         )
     }
 
     /// Check if order is active.
     pub fn is_active(&self) -> bool {
-        matches!(self, OrderStatus::Pending | OrderStatus::New | OrderStatus::PartiallyFilled)
+        matches!(
+            self,
+            OrderStatus::Pending | OrderStatus::New | OrderStatus::PartiallyFilled
+        )
     }
 }
 

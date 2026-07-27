@@ -3,7 +3,10 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
@@ -54,7 +57,11 @@ impl ApiServer {
     pub async fn start(&self) -> anyhow::Result<()> {
         // Load configuration
         let config = Config::load(&self.config_path).unwrap_or_else(|e| {
-            tracing::warn!("Failed to load config from '{}': {}. Using default.", self.config_path, e);
+            tracing::warn!(
+                "Failed to load config from '{}': {}. Using default.",
+                self.config_path,
+                e
+            );
             Config::default()
         });
 

@@ -42,10 +42,7 @@ impl PriceCache {
     /// Set the price for a symbol.
     pub async fn set(&self, symbol: &str, price: f64, timestamp: i64) {
         let mut prices = self.prices.write().await;
-        prices.insert(
-            symbol.to_string(),
-            PriceEntry { price, timestamp },
-        );
+        prices.insert(symbol.to_string(), PriceEntry { price, timestamp });
     }
 
     /// Update price from ticker data.
@@ -69,9 +66,9 @@ impl PriceCache {
     /// Get price age in milliseconds.
     pub async fn price_age_ms(&self, symbol: &str) -> Option<i64> {
         let prices = self.prices.read().await;
-        prices.get(symbol).map(|e| {
-            chrono::Utc::now().timestamp_millis() - e.timestamp
-        })
+        prices
+            .get(symbol)
+            .map(|e| chrono::Utc::now().timestamp_millis() - e.timestamp)
     }
 
     /// Check if price is stale (older than threshold).

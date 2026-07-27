@@ -10,10 +10,10 @@ use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{OrderSide, OrderType, OrderUpdateEvent};
-use crate::config::{MAINNET_WS_URL, TESTNET_WS_URL, INITIAL_RECONNECT_DELAY_SECS};
+use crate::config::{INITIAL_RECONNECT_DELAY_SECS, MAINNET_WS_URL, TESTNET_WS_URL};
 use crate::helpers::{next_reconnect_delay, parse_order_status};
+use sdktrader_core::models::{OrderSide, OrderType, OrderUpdateEvent};
+use sdktrader_core::utils::timestamp_ms;
 
 /// Log an order update event with exchange/local timestamp delta.
 fn log_order_update(event: &OrderUpdateEvent) {

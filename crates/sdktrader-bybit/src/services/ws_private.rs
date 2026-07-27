@@ -1,9 +1,9 @@
 //! Private WebSocket user data stream service for Bybit.
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::models::{OrderSide, OrderStatus, OrderType, OrderUpdateEvent};
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
+use sdktrader_core::models::{OrderSide, OrderStatus, OrderType, OrderUpdateEvent};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};

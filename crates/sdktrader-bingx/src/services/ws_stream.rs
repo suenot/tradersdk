@@ -2,14 +2,12 @@
 //!
 //! BingX sends data in gzip-compressed Binary messages, so we need to decompress them.
 
-use sdktrader_core::models::{MarketType, WsTestResult};
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
+use sdktrader_core::models::{MarketType, WsTestResult};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-use super::super::config::{
-    MAINNET_WS_SPOT_URL, MAINNET_WS_SWAP_URL, TESTNET_WS_SWAP_URL,
-};
+use super::super::config::{MAINNET_WS_SPOT_URL, MAINNET_WS_SWAP_URL, TESTNET_WS_SWAP_URL};
 use super::super::helpers::{decompress, format_symbol};
 
 /// Market data stream service for BingX.
@@ -21,7 +19,10 @@ pub struct MarketStreamService {
 impl MarketStreamService {
     /// Create a new market stream service.
     pub fn new(testnet: bool, market_type: MarketType) -> Self {
-        Self { testnet, market_type }
+        Self {
+            testnet,
+            market_type,
+        }
     }
 
     /// Get WebSocket URL for market data.

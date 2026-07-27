@@ -1,7 +1,7 @@
 //! MEXC helper functions.
 
-use sdktrader_core::models::{MarketType, OrderStatus};
 use crate::config::MAX_RECONNECT_DELAY_SECS;
+use sdktrader_core::models::{MarketType, OrderStatus};
 
 /// Calculate next reconnect delay with exponential backoff.
 pub fn next_reconnect_delay(current: u64) -> u64 {
@@ -77,7 +77,10 @@ mod tests {
         assert_eq!(parse_order_status("NEW"), OrderStatus::New);
         assert_eq!(parse_order_status("FILLED"), OrderStatus::Filled);
         assert_eq!(parse_order_status("CANCELED"), OrderStatus::Cancelled);
-        assert_eq!(parse_order_status("PARTIALLY_FILLED"), OrderStatus::PartiallyFilled);
+        assert_eq!(
+            parse_order_status("PARTIALLY_FILLED"),
+            OrderStatus::PartiallyFilled
+        );
     }
 
     #[test]

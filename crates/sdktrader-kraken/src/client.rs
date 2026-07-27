@@ -1,17 +1,17 @@
 //! Kraken exchange trader implementation.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult,
-    OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
-    TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
+    OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo, TimeInForce,
+    WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use serde::Serialize;
 use sha2::{Digest, Sha256, Sha512};
 use tokio::sync::broadcast;
@@ -50,12 +50,7 @@ pub struct KrakenTrader {
 
 impl KrakenTrader {
     /// Create a new Kraken trader.
-    pub fn new(
-        api_key: &str,
-        api_secret: &str,
-        testnet: bool,
-        market_type: MarketType,
-    ) -> Self {
+    pub fn new(api_key: &str, api_secret: &str, testnet: bool, market_type: MarketType) -> Self {
         Self {
             api_key: api_key.to_string(),
             api_secret: api_secret.to_string(),
@@ -128,8 +123,8 @@ impl KrakenTrader {
         use hmac::{Hmac, Mac};
         type HmacSha512 = Hmac<Sha512>;
 
-        let mut mac = HmacSha512::new_from_slice(&secret_bytes)
-            .expect("HMAC can take key of any size");
+        let mut mac =
+            HmacSha512::new_from_slice(&secret_bytes).expect("HMAC can take key of any size");
         mac.update(&message);
 
         let result = mac.finalize();
@@ -156,8 +151,8 @@ impl KrakenTrader {
         use hmac::{Hmac, Mac};
         type HmacSha512 = Hmac<Sha512>;
 
-        let mut mac = HmacSha512::new_from_slice(&hashed_secret)
-            .expect("HMAC can take key of any size");
+        let mut mac =
+            HmacSha512::new_from_slice(&hashed_secret).expect("HMAC can take key of any size");
         mac.update(message.as_bytes());
 
         let result = mac.finalize();
@@ -197,7 +192,7 @@ impl KrakenTrader {
     }
 
     /// Convert Kraken symbol (XBT) back to standard format (BTC).
-    fn from_kraken_symbol(&self, symbol: &str) -> String {
+    fn from_kraken_symbol(symbol: &str) -> String {
         symbol.replace("XBT", "BTC").replace("PI_", "")
     }
 
@@ -319,8 +314,8 @@ impl KrakenTrader {
         use hmac::{Hmac, Mac};
         type HmacSha512 = Hmac<Sha512>;
 
-        let mut mac = HmacSha512::new_from_slice(&hashed_secret)
-            .expect("HMAC can take key of any size");
+        let mut mac =
+            HmacSha512::new_from_slice(&hashed_secret).expect("HMAC can take key of any size");
         mac.update(challenge.as_bytes());
 
         let result = mac.finalize();
@@ -428,7 +423,11 @@ impl KrakenTrader {
                 }
 
                 let response = self
-                    .futures_private_request("POST", "/derivatives/api/v3/sendorder", Some(&order_params))
+                    .futures_private_request(
+                        "POST",
+                        "/derivatives/api/v3/sendorder",
+                        Some(&order_params),
+                    )
                     .await?;
 
                 if let Some(send_status) = response.get("sendStatus") {
@@ -497,7 +496,11 @@ impl KrakenTrader {
                 });
 
                 let response = self
-                    .futures_private_request("POST", "/derivatives/api/v3/cancelorder", Some(&params))
+                    .futures_private_request(
+                        "POST",
+                        "/derivatives/api/v3/cancelorder",
+                        Some(&params),
+                    )
                     .await?;
 
                 if response.get("result").and_then(|r| r.as_str()) == Some("success") {
@@ -683,7 +686,8 @@ impl ExchangeTrader for KrakenTrader {
                         if let Some(amount) = value.as_str().and_then(|s| s.parse::<f64>().ok()) {
                             if amount > 0.0 {
                                 // Convert XBT back to BTC for display
-                                let display_asset = asset.replace("XXBT", "BTC").replace("ZUSD", "USD");
+                                let display_asset =
+                                    asset.replace("XXBT", "BTC").replace("ZUSD", "USD");
                                 balances.push(Balance {
                                     asset: display_asset,
                                     free: amount,
@@ -723,7 +727,8 @@ impl ExchangeTrader for KrakenTrader {
                 if let Some(accounts) = response.get("accounts").and_then(|a| a.as_object()) {
                     // Look for the cash/flex account
                     for (_, account) in accounts {
-                        if let Some(balances) = account.get("balances").and_then(|b| b.as_object()) {
+                        if let Some(balances) = account.get("balances").and_then(|b| b.as_object())
+                        {
                             for (_, balance) in balances {
                                 total += balance.as_f64().unwrap_or(0.0);
                             }
@@ -790,7 +795,8 @@ impl ExchangeTrader for KrakenTrader {
             }
             MarketType::Swap => {
                 let url = format!("{}/derivatives/api/v3/tickers", self.rest_url());
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 if let Some(tickers) = response.get("tickers").and_then(|t| t.as_array()) {
                     for ticker in tickers {
@@ -824,7 +830,7 @@ impl ExchangeTrader for KrakenTrader {
                     .await?;
 
                 if let Some(result) = response.get("result").and_then(|r| r.as_object()) {
-                    for (_, ticker) in result {
+                    if let Some((_, ticker)) = result.into_iter().next() {
                         let last_price = ticker
                             .get("c")
                             .and_then(|c| c.as_array())
@@ -869,7 +875,7 @@ impl ExchangeTrader for KrakenTrader {
                             .and_then(|s| s.parse::<f64>().ok());
 
                         return Ok(TickerInfo {
-                            symbol: self.from_kraken_symbol(&kraken_symbol),
+                            symbol: Self::from_kraken_symbol(&kraken_symbol),
                             last_price,
                             bid_price,
                             ask_price,
@@ -893,14 +899,18 @@ impl ExchangeTrader for KrakenTrader {
             }
             MarketType::Swap => {
                 let url = format!("{}/derivatives/api/v3/tickers", self.rest_url());
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 if let Some(tickers) = response.get("tickers").and_then(|t| t.as_array()) {
                     for ticker in tickers {
                         if ticker.get("symbol").and_then(|s| s.as_str()) == Some(&kraken_symbol) {
                             return Ok(TickerInfo {
-                                symbol: self.from_kraken_symbol(&kraken_symbol),
-                                last_price: ticker.get("last").and_then(|p| p.as_f64()).unwrap_or(0.0),
+                                symbol: Self::from_kraken_symbol(&kraken_symbol),
+                                last_price: ticker
+                                    .get("last")
+                                    .and_then(|p| p.as_f64())
+                                    .unwrap_or(0.0),
                                 bid_price: ticker.get("bid").and_then(|p| p.as_f64()),
                                 ask_price: ticker.get("ask").and_then(|p| p.as_f64()),
                                 high_24h: ticker.get("high24h").and_then(|p| p.as_f64()),
@@ -911,7 +921,9 @@ impl ExchangeTrader for KrakenTrader {
                                 open_interest: ticker.get("openInterest").and_then(|p| p.as_f64()),
                                 open_interest_value: None,
                                 funding_rate: ticker.get("fundingRate").and_then(|p| p.as_f64()),
-                                next_funding_time: ticker.get("nextFundingRateTime").and_then(|t| t.as_i64()),
+                                next_funding_time: ticker
+                                    .get("nextFundingRateTime")
+                                    .and_then(|t| t.as_i64()),
                                 mark_price: ticker.get("markPrice").and_then(|p| p.as_f64()),
                                 index_price: ticker.get("indexPrice").and_then(|p| p.as_f64()),
                                 timestamp: timestamp_ms(),
@@ -942,7 +954,7 @@ impl ExchangeTrader for KrakenTrader {
                     .await?;
 
                 if let Some(result) = response.get("result").and_then(|r| r.as_object()) {
-                    for (_, data) in result {
+                    if let Some((_, data)) = result.into_iter().next() {
                         let bids: Vec<OrderbookLevel> = data
                             .get("bids")
                             .and_then(|b| b.as_array())
@@ -972,7 +984,7 @@ impl ExchangeTrader for KrakenTrader {
                             .unwrap_or_default();
 
                         return Ok(Orderbook {
-                            symbol: self.from_kraken_symbol(&kraken_symbol),
+                            symbol: Self::from_kraken_symbol(&kraken_symbol),
                             bids,
                             asks,
                             timestamp: timestamp_ms(),
@@ -988,7 +1000,8 @@ impl ExchangeTrader for KrakenTrader {
                     self.rest_url(),
                     kraken_symbol
                 );
-                let response: serde_json::Value = self.client.get(&url).send().await?.json().await?;
+                let response: serde_json::Value =
+                    self.client.get(&url).send().await?.json().await?;
 
                 let orderbook = response.get("orderBook").unwrap_or(&response);
 
@@ -1023,7 +1036,7 @@ impl ExchangeTrader for KrakenTrader {
                     .unwrap_or_default();
 
                 Ok(Orderbook {
-                    symbol: self.from_kraken_symbol(&kraken_symbol),
+                    symbol: Self::from_kraken_symbol(&kraken_symbol),
                     bids,
                     asks,
                     timestamp: timestamp_ms(),
@@ -1042,9 +1055,15 @@ impl ExchangeTrader for KrakenTrader {
                 // Kraken Futures leverage is set per-order, not globally
                 // This is a no-op but we log it for reference
                 if let Some(sym) = symbol {
-                    info!("Kraken futures leverage {} will be applied to {} orders", leverage, sym);
+                    info!(
+                        "Kraken futures leverage {} will be applied to {} orders",
+                        leverage, sym
+                    );
                 } else {
-                    info!("Kraken futures leverage {} will be applied to orders", leverage);
+                    info!(
+                        "Kraken futures leverage {} will be applied to orders",
+                        leverage
+                    );
                 }
                 Ok(true)
             }
@@ -1091,7 +1110,8 @@ impl ExchangeTrader for KrakenTrader {
         };
 
         // Place market order
-        self.place_market_order(&formatted_symbol, side, quantity).await
+        self.place_market_order(&formatted_symbol, side, quantity)
+            .await
     }
 
     async fn place_market_order(
@@ -1112,8 +1132,15 @@ impl ExchangeTrader for KrakenTrader {
         price: f64,
         reduce_only: bool,
     ) -> Result<OrderResult> {
-        self.place_order_rest(symbol, side, OrderType::Limit, quantity, Some(price), reduce_only)
-            .await
+        self.place_order_rest(
+            symbol,
+            side,
+            OrderType::Limit,
+            quantity,
+            Some(price),
+            reduce_only,
+        )
+        .await
     }
 
     async fn cancel_order(&self, symbol: &str, order_id: &str) -> Result<bool> {
@@ -1175,7 +1202,7 @@ impl ExchangeTrader for KrakenTrader {
                                 .get("userref")
                                 .and_then(|u| u.as_i64())
                                 .map(|i| i.to_string()),
-                            symbol: self.from_kraken_symbol(symbol),
+                            symbol: Self::from_kraken_symbol(symbol),
                             status: parse_order_status_str(status_str),
                             side: if side_str == "sell" {
                                 OrderSide::Sell
@@ -1211,7 +1238,11 @@ impl ExchangeTrader for KrakenTrader {
                 });
 
                 let response = self
-                    .futures_private_request("POST", "/derivatives/api/v3/orders/status", Some(&params))
+                    .futures_private_request(
+                        "POST",
+                        "/derivatives/api/v3/orders/status",
+                        Some(&params),
+                    )
                     .await?;
 
                 if let Some(orders) = response.get("orders").and_then(|o| o.as_array()) {
@@ -1221,10 +1252,7 @@ impl ExchangeTrader for KrakenTrader {
                             .and_then(|s| s.as_str())
                             .unwrap_or("open");
 
-                        let side_str = order
-                            .get("side")
-                            .and_then(|s| s.as_str())
-                            .unwrap_or("buy");
+                        let side_str = order.get("side").and_then(|s| s.as_str()).unwrap_or("buy");
 
                         let order_type_str = order
                             .get("orderType")
@@ -1237,7 +1265,7 @@ impl ExchangeTrader for KrakenTrader {
                                 .get("cliOrdId")
                                 .and_then(|c| c.as_str())
                                 .map(|s| s.to_string()),
-                            symbol: self.from_kraken_symbol(symbol),
+                            symbol: Self::from_kraken_symbol(symbol),
                             status: parse_order_status_str(status_str),
                             side: if side_str == "sell" {
                                 OrderSide::Sell
@@ -1249,9 +1277,15 @@ impl ExchangeTrader for KrakenTrader {
                             } else {
                                 OrderType::Market
                             },
-                            price: order.get("limitPrice").and_then(|p| p.as_f64()).unwrap_or(0.0),
+                            price: order
+                                .get("limitPrice")
+                                .and_then(|p| p.as_f64())
+                                .unwrap_or(0.0),
                             quantity: order.get("qty").and_then(|q| q.as_f64()).unwrap_or(0.0),
-                            filled_quantity: order.get("filled").and_then(|f| f.as_f64()).unwrap_or(0.0),
+                            filled_quantity: order
+                                .get("filled")
+                                .and_then(|f| f.as_f64())
+                                .unwrap_or(0.0),
                             remaining_quantity: order
                                 .get("unfilledSize")
                                 .and_then(|u| u.as_f64())
@@ -1277,13 +1311,11 @@ impl ExchangeTrader for KrakenTrader {
 
     async fn close_position(&self, symbol: &str) -> Result<OrderResult> {
         match self.market_type {
-            MarketType::Spot => {
-                Ok(OrderResult::failure(
-                    symbol.to_string(),
-                    OrderSide::Sell,
-                    "Spot trading does not have positions to close".to_string(),
-                ))
-            }
+            MarketType::Spot => Ok(OrderResult::failure(
+                symbol.to_string(),
+                OrderSide::Sell,
+                "Spot trading does not have positions to close".to_string(),
+            )),
             MarketType::Swap => {
                 // Get current position
                 let response = self
@@ -1296,7 +1328,8 @@ impl ExchangeTrader for KrakenTrader {
                     for pos in positions {
                         if pos.get("symbol").and_then(|s| s.as_str()) == Some(&kraken_symbol) {
                             let size = pos.get("size").and_then(|s| s.as_f64()).unwrap_or(0.0);
-                            let side_str = pos.get("side").and_then(|s| s.as_str()).unwrap_or("long");
+                            let side_str =
+                                pos.get("side").and_then(|s| s.as_str()).unwrap_or("long");
 
                             if size.abs() > 0.0 {
                                 // Close by placing opposite order
@@ -1350,7 +1383,12 @@ impl ExchangeTrader for KrakenTrader {
         }
     }
 
-    async fn test_ws_orderbook(&self, symbol: &str, depth: u32, timeout_ms: u64) -> Result<WsTestResult> {
+    async fn test_ws_orderbook(
+        &self,
+        symbol: &str,
+        depth: u32,
+        timeout_ms: u64,
+    ) -> Result<WsTestResult> {
         let ws_url = self.ws_public_url();
         let kraken_symbol = self.to_kraken_symbol(symbol);
         let start = std::time::Instant::now();
@@ -1375,7 +1413,7 @@ impl ExchangeTrader for KrakenTrader {
                     },
                 };
                 let msg_json = serde_json::to_string(&sub_msg)?;
-                ws_stream.send(Message::Text(msg_json.into())).await?;
+                ws_stream.send(Message::Text(msg_json)).await?;
             }
             MarketType::Swap => {
                 let sub_msg = FuturesWsSubscribe {
@@ -1387,7 +1425,7 @@ impl ExchangeTrader for KrakenTrader {
                     signed_challenge: None,
                 };
                 let msg_json = serde_json::to_string(&sub_msg)?;
-                ws_stream.send(Message::Text(msg_json.into())).await?;
+                ws_stream.send(Message::Text(msg_json)).await?;
             }
         }
 
@@ -1461,7 +1499,7 @@ impl ExchangeTrader for KrakenTrader {
                     },
                 };
                 let msg_json = serde_json::to_string(&sub_msg)?;
-                ws_stream.send(Message::Text(msg_json.into())).await?;
+                ws_stream.send(Message::Text(msg_json)).await?;
             }
             MarketType::Swap => {
                 let sub_msg = FuturesWsSubscribe {
@@ -1473,7 +1511,7 @@ impl ExchangeTrader for KrakenTrader {
                     signed_challenge: None,
                 };
                 let msg_json = serde_json::to_string(&sub_msg)?;
-                ws_stream.send(Message::Text(msg_json.into())).await?;
+                ws_stream.send(Message::Text(msg_json)).await?;
             }
         }
 
@@ -1547,7 +1585,7 @@ impl ExchangeTrader for KrakenTrader {
                     },
                 };
                 let msg_json = serde_json::to_string(&sub_msg)?;
-                ws_stream.send(Message::Text(msg_json.into())).await?;
+                ws_stream.send(Message::Text(msg_json)).await?;
             }
             MarketType::Swap => {
                 let sub_msg = FuturesWsSubscribe {
@@ -1559,7 +1597,7 @@ impl ExchangeTrader for KrakenTrader {
                     signed_challenge: None,
                 };
                 let msg_json = serde_json::to_string(&sub_msg)?;
-                ws_stream.send(Message::Text(msg_json.into())).await?;
+                ws_stream.send(Message::Text(msg_json)).await?;
             }
         }
 
@@ -1656,9 +1694,8 @@ impl ExchangeTrader for KrakenTrader {
                                         }
                                     });
 
-                                    if let Err(e) = ws_stream
-                                        .send(Message::Text(sub_msg.to_string().into()))
-                                        .await
+                                    if let Err(e) =
+                                        ws_stream.send(Message::Text(sub_msg.to_string())).await
                                     {
                                         error!("[{}] Failed to subscribe: {}", exchange_name, e);
                                         false
@@ -1680,18 +1717,25 @@ impl ExchangeTrader for KrakenTrader {
                                 });
 
                                 if let Err(e) = ws_stream
-                                    .send(Message::Text(challenge_req.to_string().into()))
+                                    .send(Message::Text(challenge_req.to_string()))
                                     .await
                                 {
-                                    error!("[{}] Failed to send challenge request: {}", exchange_name, e);
+                                    error!(
+                                        "[{}] Failed to send challenge request: {}",
+                                        exchange_name, e
+                                    );
                                     false
                                 } else {
                                     // Wait for challenge response
                                     let mut auth_ok = false;
 
                                     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
-                                        if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&text) {
-                                            if let Some(challenge) = resp.get("message").and_then(|m| m.as_str()) {
+                                        if let Ok(resp) =
+                                            serde_json::from_str::<serde_json::Value>(&text)
+                                        {
+                                            if let Some(challenge) =
+                                                resp.get("message").and_then(|m| m.as_str())
+                                            {
                                                 // Sign the challenge
                                                 let secret_bytes = general_purpose::STANDARD
                                                     .decode(&api_secret)
@@ -1704,11 +1748,13 @@ impl ExchangeTrader for KrakenTrader {
                                                 use hmac::{Hmac, Mac};
                                                 type HmacSha512 = Hmac<Sha512>;
 
-                                                let mut mac = HmacSha512::new_from_slice(&hashed_secret)
-                                                    .expect("HMAC can take key of any size");
+                                                let mut mac =
+                                                    HmacSha512::new_from_slice(&hashed_secret)
+                                                        .expect("HMAC can take key of any size");
                                                 mac.update(challenge.as_bytes());
 
-                                                let signed = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
+                                                let signed = general_purpose::STANDARD
+                                                    .encode(mac.finalize().into_bytes());
 
                                                 // Subscribe with signed challenge
                                                 let sub_msg = serde_json::json!({
@@ -1720,12 +1766,18 @@ impl ExchangeTrader for KrakenTrader {
                                                 });
 
                                                 if let Err(e) = ws_stream
-                                                    .send(Message::Text(sub_msg.to_string().into()))
+                                                    .send(Message::Text(sub_msg.to_string()))
                                                     .await
                                                 {
-                                                    error!("[{}] Failed to subscribe: {}", exchange_name, e);
+                                                    error!(
+                                                        "[{}] Failed to subscribe: {}",
+                                                        exchange_name, e
+                                                    );
                                                 } else {
-                                                    info!("[{}] Subscribed to open_orders", exchange_name);
+                                                    info!(
+                                                        "[{}] Subscribed to open_orders",
+                                                        exchange_name
+                                                    );
                                                     auth_ok = true;
                                                 }
                                             }
@@ -1738,13 +1790,15 @@ impl ExchangeTrader for KrakenTrader {
                         };
 
                         if !authenticated {
-                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
+                                .await;
                             reconnect_delay = next_reconnect_delay(reconnect_delay);
                             continue;
                         }
 
                         reconnect_delay = INITIAL_RECONNECT_DELAY_SECS;
-                        let mut ping_interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+                        let mut ping_interval =
+                            tokio::time::interval(tokio::time::Duration::from_secs(30));
 
                         loop {
                             tokio::select! {
@@ -1758,7 +1812,7 @@ impl ExchangeTrader for KrakenTrader {
                                                         // Spot format: array with channel name and data
                                                         if let Some(arr) = msg_json.as_array() {
                                                             if arr.len() >= 2 {
-                                                                if let Some(orders) = arr.get(0).and_then(|o| o.as_array()) {
+                                                                if let Some(orders) = arr.first().and_then(|o| o.as_array()) {
                                                                     for order_data in orders {
                                                                         for (order_id, order) in order_data.as_object().unwrap_or(&serde_json::Map::new()) {
                                                                             let event = OrderUpdateEvent {
@@ -1854,7 +1908,7 @@ impl ExchangeTrader for KrakenTrader {
                                         MarketType::Spot => serde_json::json!({"event": "ping"}),
                                         MarketType::Swap => serde_json::json!({"event": "heartbeat"}),
                                     };
-                                    if let Err(e) = ws_stream.send(Message::Text(ping_msg.to_string().into())).await {
+                                    if let Err(e) = ws_stream.send(Message::Text(ping_msg.to_string())).await {
                                         error!("[{}] Ping failed: {}", exchange_name, e);
                                         break;
                                     }
@@ -1911,9 +1965,8 @@ mod tests {
 
     #[test]
     fn test_from_kraken_symbol() {
-        let trader = KrakenTrader::new("", "", false, MarketType::Spot);
-        assert_eq!(trader.from_kraken_symbol("XBTUSD"), "BTCUSD");
-        assert_eq!(trader.from_kraken_symbol("PI_XBTUSD"), "BTCUSD");
+        assert_eq!(KrakenTrader::from_kraken_symbol("XBTUSD"), "BTCUSD");
+        assert_eq!(KrakenTrader::from_kraken_symbol("PI_XBTUSD"), "BTCUSD");
     }
 
     #[test]
@@ -1921,7 +1974,10 @@ mod tests {
         assert_eq!(parse_order_status_str("open"), OrderStatus::New);
         assert_eq!(parse_order_status_str("closed"), OrderStatus::Filled);
         assert_eq!(parse_order_status_str("canceled"), OrderStatus::Cancelled);
-        assert_eq!(parse_order_status_str("partial"), OrderStatus::PartiallyFilled);
+        assert_eq!(
+            parse_order_status_str("partial"),
+            OrderStatus::PartiallyFilled
+        );
     }
 
     #[test]

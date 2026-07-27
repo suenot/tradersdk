@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Whether a specific capability is supported by an exchange.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum CapabilityStatus {
@@ -16,13 +16,8 @@ pub enum CapabilityStatus {
     /// Explicitly not supported.
     NotSupported,
     /// Not yet determined or not implemented.
+    #[default]
     Unknown,
-}
-
-impl Default for CapabilityStatus {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 impl std::fmt::Display for CapabilityStatus {
@@ -54,7 +49,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // MARKET TYPES
     // ═══════════════════════════════════════════════════════════════
-
     /// Spot trading support.
     pub spot: CapabilityStatus,
     /// Perpetual swap / futures trading support.
@@ -69,7 +63,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // ORDER CREATION
     // ═══════════════════════════════════════════════════════════════
-
     /// Create market orders.
     pub create_market_order: CapabilityStatus,
     /// Create limit orders.
@@ -92,7 +85,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // ORDER MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
-
     /// Cancel a single order.
     pub cancel_order: CapabilityStatus,
     /// Cancel all orders for a symbol.
@@ -103,7 +95,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // ORDER QUERIES
     // ═══════════════════════════════════════════════════════════════
-
     /// Get status of a specific order.
     pub get_order_status: CapabilityStatus,
     /// Get all open orders.
@@ -116,7 +107,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // POSITION MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
-
     /// Set leverage for a symbol.
     pub set_leverage: CapabilityStatus,
     /// Set margin mode (cross/isolated).
@@ -133,7 +123,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // MARKET DATA (REST)
     // ═══════════════════════════════════════════════════════════════
-
     /// Get current price for a symbol.
     pub get_current_price: CapabilityStatus,
     /// Get full ticker info.
@@ -156,7 +145,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // ACCOUNT
     // ═══════════════════════════════════════════════════════════════
-
     /// Get account balance.
     pub get_balance: CapabilityStatus,
     /// Get server time.
@@ -167,7 +155,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // WEBSOCKET
     // ═══════════════════════════════════════════════════════════════
-
     /// WebSocket orderbook subscription.
     pub ws_orderbook: CapabilityStatus,
     /// WebSocket trades subscription.
@@ -184,7 +171,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // FAST ENTRY
     // ═══════════════════════════════════════════════════════════════
-
     /// Execute a fast market entry with optional TP/SL.
     pub execute_fast_entry: CapabilityStatus,
     /// Symbol formatting.
@@ -193,7 +179,6 @@ pub struct ExchangeCapabilities {
     // ═══════════════════════════════════════════════════════════════
     // TRANSFERS
     // ═══════════════════════════════════════════════════════════════
-
     /// Withdraw funds.
     pub withdraw: CapabilityStatus,
     /// Deposit address generation.
@@ -263,6 +248,7 @@ impl ExchangeCapabilities {
 macro_rules! exchange_capabilities {
     ($($field:ident : $status:ident),* $(,)?) => {
         {
+            #[allow(unused_imports)]
             use $crate::models::CapabilityStatus::*;
             $crate::models::ExchangeCapabilities {
                 $($field: $status,)*
@@ -315,9 +301,11 @@ mod tests {
 
     #[test]
     fn test_serialization_roundtrip() {
-        let mut caps = ExchangeCapabilities::default();
-        caps.spot = CapabilityStatus::Supported;
-        caps.swap = CapabilityStatus::NotSupported;
+        let caps = ExchangeCapabilities {
+            spot: CapabilityStatus::Supported,
+            swap: CapabilityStatus::NotSupported,
+            ..Default::default()
+        };
 
         let json = serde_json::to_string(&caps).unwrap();
         let deserialized: ExchangeCapabilities = serde_json::from_str(&json).unwrap();

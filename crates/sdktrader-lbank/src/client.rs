@@ -3,17 +3,17 @@
 //! LBank API v2 implementation with HMAC-SHA256 signing.
 //! LBank uses lowercase symbol format with underscore: btc_usdt
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use futures_util::{SinkExt, StreamExt};
+use reqwest::Client;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
     OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::{Context, Result};
-use async_trait::async_trait;
-use futures_util::{SinkExt, StreamExt};
-use reqwest::Client;
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use serde::Deserialize;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -311,18 +311,19 @@ impl ExchangeTrader for LbankTrader {
     }
 
     async fn get_balance(&self) -> Result<AccountBalance> {
-        let response: LbankBalanceResponse = self
-            .signed_post("/v2/user_info.do", &[])
-            .await?;
+        let response: LbankBalanceResponse = self.signed_post("/v2/user_info.do", &[]).await?;
 
         if response.result.as_deref() != Some("true") {
             anyhow::bail!("Failed to get LBank balance");
         }
 
-        let info = response.info.ok_or_else(|| anyhow::anyhow!("No balance info"))?;
+        let info = response
+            .info
+            .ok_or_else(|| anyhow::anyhow!("No balance info"))?;
 
         // Parse USDT balance from the response
-        let free_usdt = info.free
+        let free_usdt = info
+            .free
             .as_ref()
             .and_then(|f| f.get("usdt"))
             .and_then(|v| v.as_str())
@@ -335,7 +336,8 @@ impl ExchangeTrader for LbankTrader {
             })
             .unwrap_or(0.0);
 
-        let frozen_usdt = info.freeze
+        let frozen_usdt = info
+            .freeze
             .as_ref()
             .and_then(|f| f.get("usdt"))
             .and_then(|v| v.as_str())
@@ -365,7 +367,10 @@ impl ExchangeTrader for LbankTrader {
 
         let response: serde_json::Value = self
             .client
-            .get(format!("{}/v2/ticker.do?symbol={}", self.base_url, formatted))
+            .get(format!(
+                "{}/v2/ticker.do?symbol={}",
+                self.base_url, formatted
+            ))
             .send()
             .await?
             .json()
@@ -390,7 +395,10 @@ impl ExchangeTrader for LbankTrader {
 
         let response: serde_json::Value = self
             .client
-            .get(format!("{}/v2/ticker.do?symbol={}", self.base_url, formatted))
+            .get(format!(
+                "{}/v2/ticker.do?symbol={}",
+                self.base_url, formatted
+            ))
             .send()
             .await?
             .json()
@@ -445,11 +453,16 @@ impl ExchangeTrader for LbankTrader {
             .map(|arr| {
                 arr.iter()
                     .filter_map(|level| {
-                        let price = level[0].as_f64()
+                        let price = level[0]
+                            .as_f64()
                             .or_else(|| level[0].as_str().and_then(|s| s.parse().ok()))?;
-                        let qty = level[1].as_f64()
+                        let qty = level[1]
+                            .as_f64()
                             .or_else(|| level[1].as_str().and_then(|s| s.parse().ok()))?;
-                        Some(OrderbookLevel { price, quantity: qty })
+                        Some(OrderbookLevel {
+                            price,
+                            quantity: qty,
+                        })
                     })
                     .collect()
             })
@@ -460,11 +473,16 @@ impl ExchangeTrader for LbankTrader {
             .map(|arr| {
                 arr.iter()
                     .filter_map(|level| {
-                        let price = level[0].as_f64()
+                        let price = level[0]
+                            .as_f64()
                             .or_else(|| level[0].as_str().and_then(|s| s.parse().ok()))?;
-                        let qty = level[1].as_f64()
+                        let qty = level[1]
+                            .as_f64()
                             .or_else(|| level[1].as_str().and_then(|s| s.parse().ok()))?;
-                        Some(OrderbookLevel { price, quantity: qty })
+                        Some(OrderbookLevel {
+                            price,
+                            quantity: qty,
+                        })
                     })
                     .collect()
             })
@@ -545,9 +563,7 @@ impl ExchangeTrader for LbankTrader {
             ("amount", quantity_str.as_str()),
         ];
 
-        let response: LbankOrderResponse = self
-            .signed_post("/v2/create_order.do", &params)
-            .await?;
+        let response: LbankOrderResponse = self.signed_post("/v2/create_order.do", &params).await?;
 
         if response.result.as_deref() != Some("true") {
             let error_code = response.error_code.unwrap_or(0);
@@ -602,9 +618,7 @@ impl ExchangeTrader for LbankTrader {
             ("price", price_str.as_str()),
         ];
 
-        let response: LbankOrderResponse = self
-            .signed_post("/v2/create_order.do", &params)
-            .await?;
+        let response: LbankOrderResponse = self.signed_post("/v2/create_order.do", &params).await?;
 
         if response.result.as_deref() != Some("true") {
             let error_code = response.error_code.unwrap_or(0);
@@ -636,14 +650,9 @@ impl ExchangeTrader for LbankTrader {
     async fn cancel_order(&self, symbol: &str, order_id: &str) -> Result<bool> {
         let formatted = self.format_symbol(symbol);
 
-        let params = [
-            ("symbol", formatted.as_str()),
-            ("order_id", order_id),
-        ];
+        let params = [("symbol", formatted.as_str()), ("order_id", order_id)];
 
-        let response: serde_json::Value = self
-            .signed_post("/v2/cancel_order.do", &params)
-            .await?;
+        let response: serde_json::Value = self.signed_post("/v2/cancel_order.do", &params).await?;
 
         let success = response["result"].as_str() == Some("true")
             || response["result"].as_bool() == Some(true);
@@ -660,14 +669,9 @@ impl ExchangeTrader for LbankTrader {
     async fn get_order_status(&self, symbol: &str, order_id: &str) -> Result<OrderInfo> {
         let formatted = self.format_symbol(symbol);
 
-        let params = [
-            ("symbol", formatted.as_str()),
-            ("order_id", order_id),
-        ];
+        let params = [("symbol", formatted.as_str()), ("order_id", order_id)];
 
-        let response: serde_json::Value = self
-            .signed_post("/v2/orders_info.do", &params)
-            .await?;
+        let response: serde_json::Value = self.signed_post("/v2/orders_info.do", &params).await?;
 
         let orders = response["orders"]
             .as_array()
@@ -720,10 +724,7 @@ impl ExchangeTrader for LbankTrader {
             .or_else(|| order["avg_price"].as_str().and_then(|s| s.parse().ok()));
 
         Ok(OrderInfo {
-            order_id: order["order_id"]
-                .as_str()
-                .unwrap_or(order_id)
-                .to_string(),
+            order_id: order["order_id"].as_str().unwrap_or(order_id).to_string(),
             client_order_id: None,
             symbol: formatted,
             status,
@@ -1036,12 +1037,10 @@ impl ExchangeTrader for LbankTrader {
                             "sign": signature
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(auth_msg.to_string()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(auth_msg.to_string())).await {
                             error!("[{}] Failed to send auth: {}", exchange_name, e);
-                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
+                                .await;
                             reconnect_delay = next_reconnect_delay(reconnect_delay);
                             continue;
                         }
@@ -1052,22 +1051,19 @@ impl ExchangeTrader for LbankTrader {
 
                         tokio::select! {
                             msg = ws_stream.next() => {
-                                match msg {
-                                    Some(Ok(Message::Text(text))) => {
-                                        debug!("[{}] Auth response: {}", exchange_name, text);
-                                        if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&text) {
-                                            if resp.get("status").and_then(|v| v.as_str()) == Some("ok")
-                                                || resp.get("result").and_then(|v| v.as_str()) == Some("true")
-                                                || resp.get("success").and_then(|v| v.as_bool()) == Some(true)
-                                            {
-                                                info!("[{}] Private WS authenticated", exchange_name);
-                                                authenticated = true;
-                                            } else {
-                                                error!("[{}] Auth failed: {}", exchange_name, text);
-                                            }
+                                if let Some(Ok(Message::Text(text))) = msg {
+                                    debug!("[{}] Auth response: {}", exchange_name, text);
+                                    if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&text) {
+                                        if resp.get("status").and_then(|v| v.as_str()) == Some("ok")
+                                            || resp.get("result").and_then(|v| v.as_str()) == Some("true")
+                                            || resp.get("success").and_then(|v| v.as_bool()) == Some(true)
+                                        {
+                                            info!("[{}] Private WS authenticated", exchange_name);
+                                            authenticated = true;
+                                        } else {
+                                            error!("[{}] Auth failed: {}", exchange_name, text);
                                         }
                                     }
-                                    _ => {}
                                 }
                             }
                             _ = tokio::time::sleep(auth_timeout) => {
@@ -1076,7 +1072,8 @@ impl ExchangeTrader for LbankTrader {
                         }
 
                         if !authenticated {
-                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
+                                .await;
                             reconnect_delay = next_reconnect_delay(reconnect_delay);
                             continue;
                         }

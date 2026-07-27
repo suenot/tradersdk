@@ -9,9 +9,9 @@ use reqwest::Client;
 use serde::Deserialize;
 use tracing::debug;
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use crate::config::{FUTURES_MAINNET_URL, SPOT_MAINNET_URL};
 use sdktrader_core::models::MarketType;
-use crate::config::{SPOT_MAINNET_URL, FUTURES_MAINNET_URL};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
 
 /// MEXC REST API service.
 pub struct RestService {
@@ -230,10 +230,7 @@ impl RestService {
     // === Public API Methods ===
 
     /// Make a public GET request (no auth).
-    pub async fn public_get<T: for<'de> Deserialize<'de>>(
-        &self,
-        endpoint: &str,
-    ) -> Result<T> {
+    pub async fn public_get<T: for<'de> Deserialize<'de>>(&self, endpoint: &str) -> Result<T> {
         let url = format!("{}{}", self.base_url, endpoint);
         let response = self.client.get(&url).send().await?;
         let text = response.text().await?;

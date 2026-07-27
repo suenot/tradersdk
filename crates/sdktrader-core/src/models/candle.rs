@@ -24,14 +24,7 @@ pub struct Candle {
 
 impl Candle {
     /// Create a new candle.
-    pub fn new(
-        timestamp: i64,
-        open: f64,
-        high: f64,
-        low: f64,
-        close: f64,
-        volume: f64,
-    ) -> Self {
+    pub fn new(timestamp: i64, open: f64, high: f64, low: f64, close: f64, volume: f64) -> Self {
         Self {
             timestamp,
             open,

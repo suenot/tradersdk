@@ -82,7 +82,7 @@ impl TelegramNotifier {
 
         let response = self
             .client
-            .post(&self.api_url())
+            .post(self.api_url())
             .json(&request)
             .send()
             .await?;
@@ -96,7 +96,9 @@ impl TelegramNotifier {
             info!("Telegram message sent successfully");
             Ok(NotificationResult::success())
         } else {
-            let error_msg = result.description.unwrap_or_else(|| "Unknown error".to_string());
+            let error_msg = result
+                .description
+                .unwrap_or_else(|| "Unknown error".to_string());
             error!("Telegram error: {}", error_msg);
             Ok(NotificationResult::failure(&error_msg))
         }

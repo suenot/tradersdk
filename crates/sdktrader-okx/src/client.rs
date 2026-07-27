@@ -7,13 +7,6 @@
 //! - Public WebSocket testing for orderbook, trades, ticker
 //! - Testnet support via x-simulated-trading header
 
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use crate::models::*;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -21,6 +14,13 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use futures_util::{SinkExt, StreamExt};
 use hmac::{Hmac, Mac};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use sha2::Sha256;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -82,7 +82,9 @@ impl OkxTrader {
     }
 
     fn timestamp_iso(&self) -> String {
-        chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string()
+        chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string()
     }
 
     /// Get WebSocket trade URL based on testnet setting.
@@ -123,18 +125,14 @@ impl OkxTrader {
             self.base_url, formatted_symbol
         );
 
-        let response: OkxResponse<Vec<OkxFundingRateData>> = self
-            .client
-            .get(&url)
-            .send()
-            .await?
-            .json()
-            .await?;
+        let response: OkxResponse<Vec<OkxFundingRateData>> =
+            self.client.get(&url).send().await?.json().await?;
 
         if let Some(data) = response.data {
             if let Some(fr) = data.first() {
                 let rate: f64 = fr.funding_rate.parse().unwrap_or(0.0);
-                let next_time: i64 = fr.next_funding_time
+                let next_time: i64 = fr
+                    .next_funding_time
                     .as_ref()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0);
@@ -156,13 +154,8 @@ impl OkxTrader {
             self.base_url, formatted_symbol
         );
 
-        let response: OkxResponse<Vec<OkxMarkPriceData>> = self
-            .client
-            .get(&url)
-            .send()
-            .await?
-            .json()
-            .await?;
+        let response: OkxResponse<Vec<OkxMarkPriceData>> =
+            self.client.get(&url).send().await?.json().await?;
 
         if let Some(data) = response.data {
             if let Some(mp) = data.first() {
@@ -186,13 +179,8 @@ impl OkxTrader {
             self.base_url, index_inst
         );
 
-        let response: OkxResponse<Vec<OkxIndexTickerData>> = self
-            .client
-            .get(&url)
-            .send()
-            .await?
-            .json()
-            .await?;
+        let response: OkxResponse<Vec<OkxIndexTickerData>> =
+            self.client.get(&url).send().await?.json().await?;
 
         if let Some(data) = response.data {
             if let Some(it) = data.first() {
@@ -214,13 +202,8 @@ impl OkxTrader {
             self.base_url, formatted_symbol
         );
 
-        let response: OkxResponse<Vec<OkxOpenInterestData>> = self
-            .client
-            .get(&url)
-            .send()
-            .await?
-            .json()
-            .await?;
+        let response: OkxResponse<Vec<OkxOpenInterestData>> =
+            self.client.get(&url).send().await?.json().await?;
 
         if let Some(data) = response.data {
             if let Some(oi) = data.first() {
@@ -240,7 +223,10 @@ impl OkxTrader {
 
         let formatted_symbol = self.format_symbol(symbol);
         let timestamp = self.timestamp_iso();
-        let path = format!("/api/v5/account/positions?instType=SWAP&instId={}", formatted_symbol);
+        let path = format!(
+            "/api/v5/account/positions?instType=SWAP&instId={}",
+            formatted_symbol
+        );
         let signature = self.sign(&timestamp, "GET", &path, "");
 
         let response: OkxResponse<Vec<OkxPositionData>> = self
@@ -250,10 +236,7 @@ impl OkxTrader {
             .header("OK-ACCESS-SIGN", signature)
             .header("OK-ACCESS-TIMESTAMP", timestamp)
             .header("OK-ACCESS-PASSPHRASE", &self.passphrase)
-            .header(
-                "x-simulated-trading",
-                if self.testnet { "1" } else { "0" },
-            )
+            .header("x-simulated-trading", if self.testnet { "1" } else { "0" })
             .send()
             .await?
             .json()
@@ -799,10 +782,7 @@ impl ExchangeTrader for OkxTrader {
             .header("OK-ACCESS-SIGN", signature)
             .header("OK-ACCESS-TIMESTAMP", timestamp)
             .header("OK-ACCESS-PASSPHRASE", &self.passphrase)
-            .header(
-                "x-simulated-trading",
-                if self.testnet { "1" } else { "0" },
-            )
+            .header("x-simulated-trading", if self.testnet { "1" } else { "0" })
             .send()
             .await?
             .json()
@@ -862,7 +842,9 @@ impl ExchangeTrader for OkxTrader {
             .unwrap_or(0.0);
 
         // Get additional data for swap markets (funding rate, mark price, etc.)
-        let (funding_rate, next_funding_time): (Option<f64>, Option<i64>) = if self.market_type == MarketType::Swap {
+        let (funding_rate, next_funding_time): (Option<f64>, Option<i64>) = if self.market_type
+            == MarketType::Swap
+        {
             match self.get_funding_rate(&formatted_symbol).await {
                 Ok(Some((rate, time))) => (Some(rate), if time > 0 { Some(time) } else { None }),
                 _ => (None, None),
@@ -1005,10 +987,7 @@ impl ExchangeTrader for OkxTrader {
             .header("OK-ACCESS-TIMESTAMP", timestamp)
             .header("OK-ACCESS-PASSPHRASE", &self.passphrase)
             .header("Content-Type", "application/json")
-            .header(
-                "x-simulated-trading",
-                if self.testnet { "1" } else { "0" },
-            )
+            .header("x-simulated-trading", if self.testnet { "1" } else { "0" })
             .body(body_str)
             .send()
             .await?
@@ -1038,9 +1017,7 @@ impl ExchangeTrader for OkxTrader {
         let quantity = usdt_amount / price * leverage as f64;
 
         if self.market_type == MarketType::Swap {
-            let _ = self
-                .set_leverage(Some(&formatted_symbol), leverage)
-                .await;
+            let _ = self.set_leverage(Some(&formatted_symbol), leverage).await;
         }
 
         let side = if direction.to_lowercase() == "long" {
@@ -1062,8 +1039,15 @@ impl ExchangeTrader for OkxTrader {
         let formatted_symbol = self.format_symbol(symbol);
 
         // Use WebSocket by default
-        self.place_order_ws(&formatted_symbol, side, OrderType::Market, quantity, None, false)
-            .await
+        self.place_order_ws(
+            &formatted_symbol,
+            side,
+            OrderType::Market,
+            quantity,
+            None,
+            false,
+        )
+        .await
     }
 
     async fn place_limit_order(
@@ -1110,10 +1094,7 @@ impl ExchangeTrader for OkxTrader {
             .header("OK-ACCESS-SIGN", signature)
             .header("OK-ACCESS-TIMESTAMP", timestamp)
             .header("OK-ACCESS-PASSPHRASE", &self.passphrase)
-            .header(
-                "x-simulated-trading",
-                if self.testnet { "1" } else { "0" },
-            )
+            .header("x-simulated-trading", if self.testnet { "1" } else { "0" })
             .send()
             .await?
             .json()
@@ -1198,7 +1179,8 @@ impl ExchangeTrader for OkxTrader {
                 // Determine close side based on position side
                 // In OKX: posSide can be "long", "short", or "net"
                 // For net mode, pos > 0 means long, pos < 0 means short
-                let close_side = if pos.pos_side == "long" || (pos.pos_side == "net" && size > 0.0) {
+                let close_side = if pos.pos_side == "long" || (pos.pos_side == "net" && size > 0.0)
+                {
                     OrderSide::Sell
                 } else {
                     OrderSide::Buy
@@ -1240,13 +1222,8 @@ impl ExchangeTrader for OkxTrader {
             self.base_url, formatted_symbol, limit
         );
 
-        let response: OkxResponse<Vec<OkxFundingRateHistoryData>> = self
-            .client
-            .get(&url)
-            .send()
-            .await?
-            .json()
-            .await?;
+        let response: OkxResponse<Vec<OkxFundingRateHistoryData>> =
+            self.client.get(&url).send().await?.json().await?;
 
         if let Some(data) = response.data {
             let entries: Vec<FundingRateEntry> = data

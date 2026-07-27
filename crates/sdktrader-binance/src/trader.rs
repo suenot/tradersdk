@@ -1,14 +1,14 @@
 //! Binance exchange trader implementation.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, WsTestResult, TimeInForce,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
-use anyhow::{Context, Result};
-use async_trait::async_trait;
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
@@ -133,10 +133,8 @@ impl ExchangeTrader for BinanceTrader {
     async fn get_current_price(&self, symbol: &str) -> Result<f64> {
         let endpoint = self.rest.ticker_price_endpoint();
         let params = format!("symbol={}", symbol);
-        let response: TickerPriceResponse = self
-            .rest
-            .public_get_with_params(endpoint, &params)
-            .await?;
+        let response: TickerPriceResponse =
+            self.rest.public_get_with_params(endpoint, &params).await?;
 
         response.price.parse().context("Failed to parse price")
     }
@@ -291,7 +289,7 @@ impl ExchangeTrader for BinanceTrader {
             symbol: symbol.to_string(),
             bids,
             asks,
-            timestamp: response["T"].as_i64().unwrap_or_else(|| timestamp_ms()),
+            timestamp: response["T"].as_i64().unwrap_or_else(timestamp_ms),
         })
     }
 
@@ -360,7 +358,14 @@ impl ExchangeTrader for BinanceTrader {
 
         // Use WebSocket by default
         self.ws_trading
-            .place_order(&formatted_symbol, side, OrderType::Market, quantity, None, false)
+            .place_order(
+                &formatted_symbol,
+                side,
+                OrderType::Market,
+                quantity,
+                None,
+                false,
+            )
             .await
     }
 
@@ -445,7 +450,7 @@ impl ExchangeTrader for BinanceTrader {
             filled_quantity,
             remaining_quantity: quantity - filled_quantity,
             avg_price,
-            timestamp: response.time.unwrap_or_else(|| timestamp_ms()),
+            timestamp: response.time.unwrap_or_else(timestamp_ms),
             time_in_force: TimeInForce::GTC,
             reduce_only: false,
         })
@@ -568,7 +573,9 @@ impl ExchangeTrader for BinanceTrader {
         depth: u32,
         timeout_ms: u64,
     ) -> Result<WsTestResult> {
-        self.ws_stream.test_orderbook(symbol, depth, timeout_ms).await
+        self.ws_stream
+            .test_orderbook(symbol, depth, timeout_ms)
+            .await
     }
 
     async fn test_ws_trades(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {

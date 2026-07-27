@@ -56,11 +56,7 @@ pub fn log_order_update(event: &OrderUpdateEvent) {
 
 /// Format symbol for Binance API (uppercase, no special chars).
 pub fn format_symbol(symbol: &str) -> String {
-    symbol
-        .to_uppercase()
-        .replace('/', "")
-        .replace('-', "")
-        .replace(':', "")
+    symbol.to_uppercase().replace(['/', '-', ':'], "")
 }
 
 /// Parse price string to f64 with default.

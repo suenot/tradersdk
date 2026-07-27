@@ -1,11 +1,11 @@
 //! Private WebSocket user data stream service for BingX.
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::models::{OrderSide, OrderStatus, OrderType, OrderUpdateEvent};
 use anyhow::Result;
 use flate2::read::GzDecoder;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{OrderSide, OrderStatus, OrderType, OrderUpdateEvent};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
 use std::io::Read;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -147,7 +147,10 @@ impl UserDataService {
                     format!("{}?listenKey={}", MAINNET_WS_USER_URL, listen_key)
                 };
 
-                info!("[{}] Connecting to user data stream: {}", exchange_name, ws_url);
+                info!(
+                    "[{}] Connecting to user data stream: {}",
+                    exchange_name, ws_url
+                );
 
                 // Step 3: Connect to WebSocket
                 match connect_async(&ws_url).await {
@@ -156,10 +159,9 @@ impl UserDataService {
                         reconnect_delay = initial_reconnect_delay();
 
                         // Step 5: Set up listenKey renewal every 30 minutes
-                        let mut keepalive_interval =
-                            tokio::time::interval(tokio::time::Duration::from_secs(
-                                LISTEN_KEY_RENEWAL_SECS,
-                            ));
+                        let mut keepalive_interval = tokio::time::interval(
+                            tokio::time::Duration::from_secs(LISTEN_KEY_RENEWAL_SECS),
+                        );
                         // Skip first tick
                         keepalive_interval.tick().await;
 

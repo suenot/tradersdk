@@ -6,18 +6,18 @@
 //! - WebSocket support for real-time data
 //! - Support for perpetuals, futures, and options
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult, OrderInfo,
-};
 use crate::models::*;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -121,7 +121,12 @@ impl DeribitTrader {
     ///
     /// Deribit signature format:
     /// signature = HMAC-SHA256(timestamp + "\n" + nonce + "\n" + method + "\n" + request_path + "\n" + body + "\n")
-    fn sign_request(&self, method: &str, request_path: &str, body: &str) -> (String, String, String) {
+    fn sign_request(
+        &self,
+        method: &str,
+        request_path: &str,
+        body: &str,
+    ) -> (String, String, String) {
         let timestamp = timestamp_ms().to_string();
         let nonce = uuid::Uuid::new_v4().to_string();
 
@@ -233,9 +238,8 @@ impl DeribitTrader {
         let formatted_symbol = self.format_symbol(symbol);
         let params = [("instrument_name", formatted_symbol.as_str())];
 
-        let response: DeribitResponse<PositionData> = self
-            .private_get("get_position", &params)
-            .await?;
+        let response: DeribitResponse<PositionData> =
+            self.private_get("get_position", &params).await?;
 
         if response.is_success() {
             if let Some(pos) = response.result {
@@ -288,8 +292,7 @@ impl DeribitTrader {
                         let auth_resp: WsAuthResponse = serde_json::from_str(&text)
                             .context("Failed to parse auth response")?;
 
-                        if auth_resp.error.is_some() {
-                            let err = auth_resp.error.unwrap();
+                        if let Some(err) = auth_resp.error {
                             anyhow::bail!("WebSocket authentication failed: {} (code: {})", err.message, err.code);
                         }
 
@@ -355,9 +358,8 @@ impl DeribitTrader {
             params.push(("reduce_only", "true"));
         }
 
-        let response: DeribitResponse<DeribitOrderResult> = self
-            .private_get(endpoint, &params)
-            .await?;
+        let response: DeribitResponse<DeribitOrderResult> =
+            self.private_get(endpoint, &params).await?;
 
         if response.is_success() {
             if let Some(result) = response.result {
@@ -385,11 +387,7 @@ impl DeribitTrader {
             "Unknown error".to_string()
         };
 
-        Ok(OrderResult::failure(
-            symbol.to_string(),
-            side,
-            error_msg,
-        ))
+        Ok(OrderResult::failure(symbol.to_string(), side, error_msg))
     }
 }
 
@@ -431,34 +429,28 @@ impl ExchangeTrader for DeribitTrader {
     }
 
     async fn test_connection(&self) -> Result<bool> {
-        let response: DeribitResponse<ServerTimeResult> = self
-            .public_get("get_time", &[])
-            .await?;
+        let response: DeribitResponse<ServerTimeResult> = self.public_get("get_time", &[]).await?;
 
         Ok(response.is_success())
     }
 
     async fn get_server_time(&self) -> Result<i64> {
-        let response: DeribitResponse<ServerTimeResult> = self
-            .public_get("get_time", &[])
-            .await?;
+        let response: DeribitResponse<ServerTimeResult> = self.public_get("get_time", &[]).await?;
 
         response.result.ok_or_else(|| {
-            let err_msg = response.error.map_or("Unknown error".to_string(), |e| e.message);
+            let err_msg = response
+                .error
+                .map_or("Unknown error".to_string(), |e| e.message);
             anyhow::anyhow!("Failed to get server time: {}", err_msg)
         })
     }
 
     async fn get_balance(&self) -> Result<AccountBalance> {
         let currency = self.get_currency();
-        let params = [
-            ("currency", currency),
-            ("extended", "true"),
-        ];
+        let params = [("currency", currency), ("extended", "true")];
 
-        let response: DeribitResponse<AccountSummaryResult> = self
-            .private_get("get_account_summary", &params)
-            .await?;
+        let response: DeribitResponse<AccountSummaryResult> =
+            self.private_get("get_account_summary", &params).await?;
 
         if let Some(result) = response.result {
             return Ok(AccountBalance::simple(
@@ -476,9 +468,7 @@ impl ExchangeTrader for DeribitTrader {
         let formatted_symbol = self.format_symbol(symbol);
         let params = [("instrument_name", formatted_symbol.as_str())];
 
-        let response: DeribitResponse<TickerResult> = self
-            .public_get("ticker", &params)
-            .await?;
+        let response: DeribitResponse<TickerResult> = self.public_get("ticker", &params).await?;
 
         if let Some(result) = response.result {
             if let Some(price) = result.last_price {
@@ -489,7 +479,9 @@ impl ExchangeTrader for DeribitTrader {
             }
         }
 
-        let err_msg = response.error.map_or("No price available".to_string(), |e| e.message);
+        let err_msg = response
+            .error
+            .map_or("No price available".to_string(), |e| e.message);
         anyhow::bail!("Failed to get price for {}: {}", symbol, err_msg)
     }
 
@@ -497,9 +489,7 @@ impl ExchangeTrader for DeribitTrader {
         let formatted_symbol = self.format_symbol(symbol);
         let params = [("instrument_name", formatted_symbol.as_str())];
 
-        let response: DeribitResponse<TickerResult> = self
-            .public_get("ticker", &params)
-            .await?;
+        let response: DeribitResponse<TickerResult> = self.public_get("ticker", &params).await?;
 
         if let Some(t) = response.result {
             let (high_24h, low_24h, volume_24h) = if let Some(stats) = &t.stats {
@@ -528,7 +518,9 @@ impl ExchangeTrader for DeribitTrader {
             });
         }
 
-        let err_msg = response.error.map_or("No ticker data".to_string(), |e| e.message);
+        let err_msg = response
+            .error
+            .map_or("No ticker data".to_string(), |e| e.message);
         anyhow::bail!("Failed to get ticker for {}: {}", symbol, err_msg)
     }
 
@@ -540,9 +532,8 @@ impl ExchangeTrader for DeribitTrader {
             ("depth", depth_str.as_str()),
         ];
 
-        let response: DeribitResponse<OrderbookResult> = self
-            .public_get("get_order_book", &params)
-            .await?;
+        let response: DeribitResponse<OrderbookResult> =
+            self.public_get("get_order_book", &params).await?;
 
         if let Some(result) = response.result {
             let bids: Vec<OrderbookLevel> = result
@@ -577,7 +568,9 @@ impl ExchangeTrader for DeribitTrader {
             });
         }
 
-        let err_msg = response.error.map_or("No orderbook data".to_string(), |e| e.message);
+        let err_msg = response
+            .error
+            .map_or("No orderbook data".to_string(), |e| e.message);
         anyhow::bail!("Failed to get orderbook: {}", err_msg)
     }
 
@@ -657,22 +650,30 @@ impl ExchangeTrader for DeribitTrader {
         price: f64,
         reduce_only: bool,
     ) -> Result<OrderResult> {
-        self.place_order_rest(symbol, side, OrderType::Limit, quantity, Some(price), reduce_only)
-            .await
+        self.place_order_rest(
+            symbol,
+            side,
+            OrderType::Limit,
+            quantity,
+            Some(price),
+            reduce_only,
+        )
+        .await
     }
 
     async fn cancel_order(&self, _symbol: &str, order_id: &str) -> Result<bool> {
         let params = [("order_id", order_id)];
 
-        let response: DeribitResponse<CancelOrderResult> = self
-            .private_get("cancel", &params)
-            .await?;
+        let response: DeribitResponse<CancelOrderResult> =
+            self.private_get("cancel", &params).await?;
 
         if response.is_success() {
             info!("Deribit order cancelled: {}", order_id);
             Ok(true)
         } else {
-            let err_msg = response.error.map_or("Unknown error".to_string(), |e| e.message);
+            let err_msg = response
+                .error
+                .map_or("Unknown error".to_string(), |e| e.message);
             error!("Failed to cancel order {}: {}", order_id, err_msg);
             Ok(false)
         }
@@ -681,9 +682,8 @@ impl ExchangeTrader for DeribitTrader {
     async fn get_order_status(&self, _symbol: &str, order_id: &str) -> Result<OrderInfo> {
         let params = [("order_id", order_id)];
 
-        let response: DeribitResponse<GetOrderStateResult> = self
-            .private_get("get_order_state", &params)
-            .await?;
+        let response: DeribitResponse<GetOrderStateResult> =
+            self.private_get("get_order_state", &params).await?;
 
         if let Some(order) = response.result {
             let side = if order.direction == "buy" {
@@ -721,7 +721,9 @@ impl ExchangeTrader for DeribitTrader {
             });
         }
 
-        let err_msg = response.error.map_or("Order not found".to_string(), |e| e.message);
+        let err_msg = response
+            .error
+            .map_or("Order not found".to_string(), |e| e.message);
         anyhow::bail!("Failed to get order status: {}", err_msg)
     }
 
@@ -821,9 +823,8 @@ impl ExchangeTrader for DeribitTrader {
             ("end_timestamp", end_str.as_str()),
         ];
 
-        let response: DeribitResponse<FundingRateHistoryResult> = self
-            .public_get("get_funding_rate_history", &params)
-            .await?;
+        let response: DeribitResponse<FundingRateHistoryResult> =
+            self.public_get("get_funding_rate_history", &params).await?;
 
         if let Some(result) = response.result {
             let entries: Vec<FundingRateEntry> = result
@@ -838,7 +839,9 @@ impl ExchangeTrader for DeribitTrader {
             return Ok(entries);
         }
 
-        let err_msg = response.error.map_or("No funding rate data".to_string(), |e| e.message);
+        let err_msg = response
+            .error
+            .map_or("No funding rate data".to_string(), |e| e.message);
         anyhow::bail!("Failed to get funding history: {}", err_msg)
     }
 
@@ -1124,7 +1127,10 @@ impl ExchangeTrader for DeribitTrader {
                             }
                         });
 
-                        if let Err(e) = ws_stream.send(Message::Text(auth_request.to_string())).await {
+                        if let Err(e) = ws_stream
+                            .send(Message::Text(auth_request.to_string()))
+                            .await
+                        {
                             error!("[{}] Failed to send auth: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1329,7 +1335,10 @@ mod tests {
         assert_eq!(trader.format_symbol("BTC/USD"), "BTC-PERPETUAL");
         assert_eq!(trader.format_symbol("ETH"), "ETH-PERPETUAL");
         assert_eq!(trader.format_symbol("BTC-PERPETUAL"), "BTC-PERPETUAL");
-        assert_eq!(trader.format_symbol("BTC-27DEC24-100000-C"), "BTC-27DEC24-100000-C");
+        assert_eq!(
+            trader.format_symbol("BTC-27DEC24-100000-C"),
+            "BTC-27DEC24-100000-C"
+        );
     }
 
     #[test]

@@ -28,7 +28,7 @@ fn default_market_type() -> String {
 }
 
 /// Root configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub bots: Vec<BotConfig>,
@@ -45,11 +45,5 @@ impl Config {
     /// Get a bot by name.
     pub fn get_bot(&self, name: &str) -> Option<&BotConfig> {
         self.bots.iter().find(|b| b.name == name)
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self { bots: vec![] }
     }
 }

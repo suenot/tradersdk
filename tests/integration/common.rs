@@ -62,8 +62,7 @@ pub fn create_test_trader(
         None => ("", "", None, true),
     };
 
-    let mut creds = ExchangeCredentials::new(api_key, api_secret)
-        .with_testnet(testnet);
+    let mut creds = ExchangeCredentials::new(api_key, api_secret).with_testnet(testnet);
 
     if let Some(pass) = passphrase {
         creds = creds.with_passphrase(pass);
@@ -91,8 +90,8 @@ macro_rules! public_endpoint_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_connection() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let result = trader.test_connection().await;
             assert!(result.is_ok(), "test_connection failed: {:?}", result.err());
@@ -102,8 +101,8 @@ macro_rules! public_endpoint_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_get_server_time() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let result = trader.get_server_time().await;
             assert!(result.is_ok(), "get_server_time failed: {:?}", result.err());
@@ -118,26 +117,33 @@ macro_rules! public_endpoint_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_get_current_price() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
             let result = trader.get_current_price(symbol).await;
 
-            assert!(result.is_ok(), "get_current_price failed: {:?}", result.err());
+            assert!(
+                result.is_ok(),
+                "get_current_price failed: {:?}",
+                result.err()
+            );
 
             let price = result.unwrap();
             assert!(price > 0.0, "Price should be positive");
             // BTC price sanity check (between $1000 and $1,000,000)
-            assert!(price > 1000.0 && price < 1_000_000.0,
-                "BTC price {} seems unreasonable", price);
+            assert!(
+                price > 1000.0 && price < 1_000_000.0,
+                "BTC price {} seems unreasonable",
+                price
+            );
         }
 
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_format_symbol() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             // Test various input formats
             let formatted1 = trader.format_symbol("BTC/USDT");
@@ -145,20 +151,31 @@ macro_rules! public_endpoint_tests {
             let formatted3 = trader.format_symbol("BTC");
 
             // All should produce a valid symbol
-            assert!(!formatted1.is_empty(), "Formatted symbol should not be empty");
-            assert!(!formatted2.is_empty(), "Formatted symbol should not be empty");
-            assert!(!formatted3.is_empty(), "Formatted symbol should not be empty");
+            assert!(
+                !formatted1.is_empty(),
+                "Formatted symbol should not be empty"
+            );
+            assert!(
+                !formatted2.is_empty(),
+                "Formatted symbol should not be empty"
+            );
+            assert!(
+                !formatted3.is_empty(),
+                "Formatted symbol should not be empty"
+            );
 
             // First two should produce the same result
-            assert_eq!(formatted1, formatted2,
-                "BTC/USDT and BTCUSDT should format to the same symbol");
+            assert_eq!(
+                formatted1, formatted2,
+                "BTC/USDT and BTCUSDT should format to the same symbol"
+            );
         }
 
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_get_orderbook() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
             let result = trader.get_orderbook(symbol, 10).await;
@@ -169,10 +186,15 @@ macro_rules! public_endpoint_tests {
                 assert!(!orderbook.asks.is_empty(), "Orderbook should have asks");
 
                 // Best bid should be less than best ask
-                if let (Some(best_bid), Some(best_ask)) = (orderbook.bids.first(), orderbook.asks.first()) {
-                    assert!(best_bid.price < best_ask.price,
+                if let (Some(best_bid), Some(best_ask)) =
+                    (orderbook.bids.first(), orderbook.asks.first())
+                {
+                    assert!(
+                        best_bid.price < best_ask.price,
                         "Best bid {} should be less than best ask {}",
-                        best_bid.price, best_ask.price);
+                        best_bid.price,
+                        best_ask.price
+                    );
                 }
             }
         }
@@ -200,7 +222,10 @@ macro_rules! private_endpoint_tests {
 
             let balance = result.unwrap();
             // Balance should have reasonable values
-            assert!(balance.total_equity >= 0.0, "Total equity should be non-negative");
+            assert!(
+                balance.total_equity >= 0.0,
+                "Total equity should be non-negative"
+            );
         }
 
         #[tokio::test]
@@ -238,8 +263,8 @@ macro_rules! websocket_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_ws_orderbook() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
             let result = trader.test_ws_orderbook(symbol, 50, 5000).await;
@@ -253,8 +278,8 @@ macro_rules! websocket_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_ws_trades() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
             let result = trader.test_ws_trades(symbol, 5000).await;
@@ -273,8 +298,8 @@ macro_rules! websocket_tests {
                 return;
             }
 
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
             let result = trader.test_ws_ticker(symbol, 5000).await;
@@ -296,8 +321,8 @@ macro_rules! order_dryrun_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_market_order_dryrun() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
             let result = trader.test_market_order(symbol, OrderSide::Buy, 10.0).await;
@@ -312,18 +337,19 @@ macro_rules! order_dryrun_tests {
         #[tokio::test]
         #[cfg(feature = "integration")]
         async fn test_limit_order_dryrun() {
-            let trader = create_test_trader($exchange, $market_type, None)
-                .expect("Failed to create trader");
+            let trader =
+                create_test_trader($exchange, $market_type, None).expect("Failed to create trader");
 
             let symbol = get_test_symbol($exchange, $market_type);
 
             // Get current price for limit order
-            let price = trader.get_current_price(symbol).await
-                .unwrap_or(50000.0);
+            let price = trader.get_current_price(symbol).await.unwrap_or(50000.0);
 
             // Place limit order 10% below current price
             let limit_price = price * 0.9;
-            let result = trader.test_limit_order(symbol, OrderSide::Buy, 10.0, limit_price).await;
+            let result = trader
+                .test_limit_order(symbol, OrderSide::Buy, 10.0, limit_price)
+                .await;
 
             if let Ok(order_result) = result {
                 assert!(order_result.valid, "Dry-run order should be valid");

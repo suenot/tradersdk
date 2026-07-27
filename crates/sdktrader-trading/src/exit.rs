@@ -3,8 +3,8 @@
 //! Ported from Python `position_exit_manager.py` method `calculate_limit_orders_grid`.
 //! Pure computation — no exchange API calls.
 
-use serde::{Deserialize, Serialize};
 use sdktrader_core::models::PositionSide;
+use serde::{Deserialize, Serialize};
 
 /// Configuration for the limit order grid.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,8 +91,7 @@ pub fn calculate_limit_orders_grid(
             (rule.percent_start + rule.percent_end) / 2.0
         } else {
             rule.percent_start
-                + (rule.percent_end - rule.percent_start) * i as f64
-                    / (num_orders - 1) as f64
+                + (rule.percent_end - rule.percent_start) * i as f64 / (num_orders - 1) as f64
         };
 
         let price = match side {
@@ -192,7 +191,7 @@ mod tests {
 
         // First order below entry
         assert!((orders[0].price - 90.0).abs() < 1e-9); // 100 * (1 - 0.10)
-        // Last order below entry
+                                                        // Last order below entry
         assert!((orders[9].price - 50.0).abs() < 1e-9); // 100 * (1 - 0.50)
     }
 
@@ -285,8 +284,10 @@ mod tests {
         };
         let orders = calculate_limit_orders_grid(100.0, 150.0, "long", &rule);
         for i in 1..orders.len() {
-            assert!(orders[i].price > orders[i - 1].price,
-                "Long grid prices should be ascending");
+            assert!(
+                orders[i].price > orders[i - 1].price,
+                "Long grid prices should be ascending"
+            );
         }
     }
 
@@ -300,8 +301,10 @@ mod tests {
         };
         let orders = calculate_limit_orders_grid(100.0, 150.0, "short", &rule);
         for i in 1..orders.len() {
-            assert!(orders[i].price < orders[i - 1].price,
-                "Short grid prices should be descending");
+            assert!(
+                orders[i].price < orders[i - 1].price,
+                "Short grid prices should be descending"
+            );
         }
     }
 }

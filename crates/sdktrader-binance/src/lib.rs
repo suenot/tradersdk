@@ -25,10 +25,10 @@
 
 pub mod config;
 pub mod helpers;
-mod trader;
 pub mod models;
 pub mod services;
+mod trader;
 
-pub use trader::BinanceTrader;
 pub use models::*;
 pub use services::{MarketStreamService, RestService, UserDataService, WsTradingService};
+pub use trader::BinanceTrader;

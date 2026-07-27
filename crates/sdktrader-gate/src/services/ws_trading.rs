@@ -10,18 +10,17 @@ use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info};
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{MarketType, OrderResult, OrderSide, OrderType};
-use crate::config::{SPOT_WS_TRADE_URL, FUTURES_WS_TRADE_URL};
+use crate::config::{FUTURES_WS_TRADE_URL, SPOT_WS_TRADE_URL};
 use crate::helpers::ws_auth_signature;
 use crate::models::{
-    WsAuth, WsRequest, WsResponse, SpotOrderParams, FuturesOrderParams, OrderCancelParams,
+    FuturesOrderParams, OrderCancelParams, SpotOrderParams, WsAuth, WsRequest, WsResponse,
 };
+use sdktrader_core::models::{MarketType, OrderResult, OrderSide, OrderType};
+use sdktrader_core::utils::timestamp_ms;
 
 /// WebSocket stream type alias for cleaner code.
-type WsStream = tokio_tungstenite::WebSocketStream<
-    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
->;
+type WsStream =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
 /// Gate.io WebSocket Trading service.
 ///
@@ -311,8 +310,15 @@ impl WsTradingService {
         price: f64,
         reduce_only: bool,
     ) -> Result<OrderResult> {
-        self.place_order(symbol, side, OrderType::Limit, quantity, Some(price), reduce_only)
-            .await
+        self.place_order(
+            symbol,
+            side,
+            OrderType::Limit,
+            quantity,
+            Some(price),
+            reduce_only,
+        )
+        .await
     }
 
     /// Cancel order via WebSocket.

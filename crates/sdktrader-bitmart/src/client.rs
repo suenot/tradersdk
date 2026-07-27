@@ -1,16 +1,16 @@
 //! BitMart exchange trader implementation.
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult,
-    OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel,
-    TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, Balance, ExchangeCapabilities, MarketType, OrderInfo, OrderResult, OrderSide,
+    OrderStatus, OrderType, OrderUpdateEvent, Orderbook, OrderbookLevel, TickerInfo, TimeInForce,
+    WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use serde::Serialize;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -143,7 +143,11 @@ impl BitmartTrader {
     }
 
     /// Make authenticated POST request.
-    async fn signed_post(&self, endpoint: &str, body: &serde_json::Value) -> Result<serde_json::Value> {
+    async fn signed_post(
+        &self,
+        endpoint: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
         let timestamp = timestamp_ms();
         let url = format!("{}{}", self.base_url, endpoint);
         let body_str = serde_json::to_string(body)?;
@@ -190,7 +194,7 @@ impl BitmartTrader {
         let auth_json = serde_json::to_string(&auth_msg)?;
         debug!("Sending WS auth: {}", auth_json);
 
-        ws_stream.send(Message::Text(auth_json.into())).await?;
+        ws_stream.send(Message::Text(auth_json)).await?;
 
         // Wait for auth response
         let timeout = tokio::time::Duration::from_secs(5);
@@ -281,7 +285,10 @@ impl BitmartTrader {
         }
 
         // Add notional for spot market buy orders
-        if self.market_type == MarketType::Spot && order_type == OrderType::Market && side == OrderSide::Buy {
+        if self.market_type == MarketType::Spot
+            && order_type == OrderType::Market
+            && side == OrderSide::Buy
+        {
             if let Some(p) = price {
                 body["notional"] = serde_json::json!(format!("{:.8}", quantity * p));
             }
@@ -291,13 +298,12 @@ impl BitmartTrader {
         debug!("Order response: {:?}", response);
 
         // Check for success
-        let code = response.get("code")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(-1);
+        let code = response.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
         if code == 1000 {
             let data = response.get("data").unwrap_or(&serde_json::Value::Null);
-            let order_id = data.get("order_id")
+            let order_id = data
+                .get("order_id")
                 .and_then(|v| v.as_str())
                 .or_else(|| data.get("order_id").and_then(|v| v.as_i64()).map(|_| ""))
                 .unwrap_or("");
@@ -317,7 +323,8 @@ impl BitmartTrader {
                 raw_response: None,
             })
         } else {
-            let error_msg = response.get("message")
+            let error_msg = response
+                .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown error")
                 .to_string();
@@ -342,15 +349,14 @@ impl BitmartTrader {
         let response = self.signed_post(endpoint, &body).await?;
         debug!("Cancel response: {:?}", response);
 
-        let code = response.get("code")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(-1);
+        let code = response.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
         if code == 1000 {
             info!("BitMart order cancelled: {}", order_id);
             Ok(true)
         } else {
-            let error_msg = response.get("message")
+            let error_msg = response
+                .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown error");
             error!("Failed to cancel order {}: {}", order_id, error_msg);
@@ -490,12 +496,11 @@ impl ExchangeTrader for BitmartTrader {
         let response = self.signed_get(endpoint).await?;
         debug!("Balance response: {:?}", response);
 
-        let code = response.get("code")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(-1);
+        let code = response.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
         if code != 1000 {
-            let error_msg = response.get("message")
+            let error_msg = response
+                .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown error");
             anyhow::bail!("Failed to get balance: {}", error_msg);
@@ -511,11 +516,13 @@ impl ExchangeTrader for BitmartTrader {
             if let Some(wallet) = data.get("wallet").and_then(|v| v.as_array()) {
                 for item in wallet {
                     let asset = item.get("id").and_then(|v| v.as_str()).unwrap_or("");
-                    let free: f64 = item.get("available")
+                    let free: f64 = item
+                        .get("available")
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0);
-                    let locked: f64 = item.get("frozen")
+                    let locked: f64 = item
+                        .get("frozen")
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0);
@@ -536,11 +543,13 @@ impl ExchangeTrader for BitmartTrader {
             }
         } else {
             // Futures balance
-            total = data.get("equity")
+            total = data
+                .get("equity")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
-            available = data.get("available_balance")
+            available = data
+                .get("available_balance")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
@@ -550,7 +559,11 @@ impl ExchangeTrader for BitmartTrader {
             total_balance: total,
             available_balance: available,
             currency: "USDT".to_string(),
-            margin_balance: if self.market_type == MarketType::Swap { Some(total) } else { None },
+            margin_balance: if self.market_type == MarketType::Swap {
+                Some(total)
+            } else {
+                None
+            },
             used_margin: None,
             unrealized_pnl: None,
             realized_pnl: None,
@@ -614,36 +627,20 @@ impl ExchangeTrader for BitmartTrader {
                     .as_str()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0.0),
-                bid_price: data["best_bid"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                ask_price: data["best_ask"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                volume_24h: data["v_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                turnover_24h: data["qv_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                high_24h: data["high_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                low_24h: data["low_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                change_24h: data["fluctuation"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
+                bid_price: data["best_bid"].as_str().and_then(|s| s.parse().ok()),
+                ask_price: data["best_ask"].as_str().and_then(|s| s.parse().ok()),
+                volume_24h: data["v_24h"].as_str().and_then(|s| s.parse().ok()),
+                turnover_24h: data["qv_24h"].as_str().and_then(|s| s.parse().ok()),
+                high_24h: data["high_24h"].as_str().and_then(|s| s.parse().ok()),
+                low_24h: data["low_24h"].as_str().and_then(|s| s.parse().ok()),
+                change_24h: data["fluctuation"].as_str().and_then(|s| s.parse().ok()),
                 open_interest: None,
                 open_interest_value: None,
                 funding_rate: None,
                 next_funding_time: None,
                 mark_price: None,
                 index_price: None,
-                timestamp: data["ts"]
-                    .as_i64()
-                    .unwrap_or(timestamp_ms()),
+                timestamp: data["ts"].as_i64().unwrap_or(timestamp_ms()),
             })
         } else {
             // Futures ticker
@@ -653,47 +650,24 @@ impl ExchangeTrader for BitmartTrader {
                     .as_str()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0.0),
-                bid_price: data["best_bid"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                ask_price: data["best_ask"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                volume_24h: data["volume_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                turnover_24h: data["turnover_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                high_24h: data["high_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                low_24h: data["low_24h"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
+                bid_price: data["best_bid"].as_str().and_then(|s| s.parse().ok()),
+                ask_price: data["best_ask"].as_str().and_then(|s| s.parse().ok()),
+                volume_24h: data["volume_24h"].as_str().and_then(|s| s.parse().ok()),
+                turnover_24h: data["turnover_24h"].as_str().and_then(|s| s.parse().ok()),
+                high_24h: data["high_24h"].as_str().and_then(|s| s.parse().ok()),
+                low_24h: data["low_24h"].as_str().and_then(|s| s.parse().ok()),
                 change_24h: data["price_change_percent_24h"]
                     .as_str()
                     .and_then(|s| s.parse().ok()),
-                open_interest: data["open_interest"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
+                open_interest: data["open_interest"].as_str().and_then(|s| s.parse().ok()),
                 open_interest_value: data["open_interest_value"]
                     .as_str()
                     .and_then(|s| s.parse().ok()),
-                funding_rate: data["funding_rate"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                next_funding_time: data["next_funding_time"]
-                    .as_i64(),
-                mark_price: data["index_price"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                index_price: data["index_price"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                timestamp: data["timestamp"]
-                    .as_i64()
-                    .unwrap_or(timestamp_ms()),
+                funding_rate: data["funding_rate"].as_str().and_then(|s| s.parse().ok()),
+                next_funding_time: data["next_funding_time"].as_i64(),
+                mark_price: data["index_price"].as_str().and_then(|s| s.parse().ok()),
+                index_price: data["index_price"].as_str().and_then(|s| s.parse().ok()),
+                timestamp: data["timestamp"].as_i64().unwrap_or(timestamp_ms()),
             })
         }
     }
@@ -702,8 +676,14 @@ impl ExchangeTrader for BitmartTrader {
         let formatted_symbol = self.format_symbol(symbol);
 
         let endpoint = match self.market_type {
-            MarketType::Spot => format!("/spot/quotation/v3/books?symbol={}&limit={}", formatted_symbol, depth),
-            MarketType::Swap => format!("/contract/public/depth?symbol={}&size={}", formatted_symbol, depth),
+            MarketType::Spot => format!(
+                "/spot/quotation/v3/books?symbol={}&limit={}",
+                formatted_symbol, depth
+            ),
+            MarketType::Swap => format!(
+                "/contract/public/depth?symbol={}&size={}",
+                formatted_symbol, depth
+            ),
         };
 
         let response: serde_json::Value = self
@@ -731,7 +711,11 @@ impl ExchangeTrader for BitmartTrader {
                             // Object format: {price, quantity}
                             (
                                 item["price"].as_str()?.parse().ok()?,
-                                item["amount"].as_str().or(item["quantity"].as_str())?.parse().ok()?,
+                                item["amount"]
+                                    .as_str()
+                                    .or(item["quantity"].as_str())?
+                                    .parse()
+                                    .ok()?,
                             )
                         };
                         Some(OrderbookLevel { price, quantity })
@@ -753,7 +737,11 @@ impl ExchangeTrader for BitmartTrader {
                         } else {
                             (
                                 item["price"].as_str()?.parse().ok()?,
-                                item["amount"].as_str().or(item["quantity"].as_str())?.parse().ok()?,
+                                item["amount"]
+                                    .as_str()
+                                    .or(item["quantity"].as_str())?
+                                    .parse()
+                                    .ok()?,
                             )
                         };
                         Some(OrderbookLevel { price, quantity })
@@ -787,18 +775,22 @@ impl ExchangeTrader for BitmartTrader {
             "open_type": "cross", // or "isolated"
         });
 
-        let response = self.signed_post("/contract/private/submit-leverage", &body).await?;
+        let response = self
+            .signed_post("/contract/private/submit-leverage", &body)
+            .await?;
         debug!("Set leverage response: {:?}", response);
 
-        let code = response.get("code")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(-1);
+        let code = response.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
         if code == 1000 {
-            info!("BitMart leverage set to {}x for {}", leverage, formatted_symbol);
+            info!(
+                "BitMart leverage set to {}x for {}",
+                leverage, formatted_symbol
+            );
             Ok(true)
         } else {
-            let error_msg = response.get("message")
+            let error_msg = response
+                .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown error");
             error!("Failed to set leverage: {}", error_msg);
@@ -891,19 +883,24 @@ impl ExchangeTrader for BitmartTrader {
         let formatted_symbol = self.format_symbol(symbol);
 
         let endpoint = match self.market_type {
-            MarketType::Spot => format!("/spot/v4/query/order?symbol={}&orderId={}", formatted_symbol, order_id),
-            MarketType::Swap => format!("/contract/private/order?symbol={}&order_id={}", formatted_symbol, order_id),
+            MarketType::Spot => format!(
+                "/spot/v4/query/order?symbol={}&orderId={}",
+                formatted_symbol, order_id
+            ),
+            MarketType::Swap => format!(
+                "/contract/private/order?symbol={}&order_id={}",
+                formatted_symbol, order_id
+            ),
         };
 
         let response = self.signed_get(&endpoint).await?;
         debug!("Order status response: {:?}", response);
 
-        let code = response.get("code")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(-1);
+        let code = response.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
         if code != 1000 {
-            let error_msg = response.get("message")
+            let error_msg = response
+                .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown error");
             anyhow::bail!("Failed to get order status: {}", error_msg);
@@ -911,51 +908,66 @@ impl ExchangeTrader for BitmartTrader {
 
         let data = response.get("data").unwrap_or(&serde_json::Value::Null);
 
-        let status_str = data.get("state")
+        let status_str = data
+            .get("state")
             .or_else(|| data.get("status"))
             .and_then(|v| v.as_str())
             .unwrap_or("new");
 
-        let side_str = data.get("side")
-            .and_then(|v| v.as_str())
-            .unwrap_or("buy");
+        let side_str = data.get("side").and_then(|v| v.as_str()).unwrap_or("buy");
 
-        let type_str = data.get("type")
+        let type_str = data
+            .get("type")
             .and_then(|v| v.as_str())
             .unwrap_or("market");
 
         Ok(OrderInfo {
             order_id: order_id.to_string(),
-            client_order_id: data.get("client_order_id")
+            client_order_id: data
+                .get("client_order_id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
             symbol: formatted_symbol,
             status: parse_order_status_str(status_str),
-            side: if side_str == "buy" { OrderSide::Buy } else { OrderSide::Sell },
-            order_type: if type_str == "market" { OrderType::Market } else { OrderType::Limit },
-            price: data.get("price")
+            side: if side_str == "buy" {
+                OrderSide::Buy
+            } else {
+                OrderSide::Sell
+            },
+            order_type: if type_str == "market" {
+                OrderType::Market
+            } else {
+                OrderType::Limit
+            },
+            price: data
+                .get("price")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0),
-            quantity: data.get("size")
+            quantity: data
+                .get("size")
                 .or_else(|| data.get("quantity"))
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0),
-            filled_quantity: data.get("filled_size")
+            filled_quantity: data
+                .get("filled_size")
                 .or_else(|| data.get("filled_qty"))
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0),
-            remaining_quantity: data.get("unfilled_size")
+            remaining_quantity: data
+                .get("unfilled_size")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0),
-            avg_price: data.get("price_avg")
+            avg_price: data
+                .get("price_avg")
                 .or_else(|| data.get("avg_price"))
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok()),
-            timestamp: data.get("create_time")
+            timestamp: data
+                .get("create_time")
                 .or_else(|| data.get("created_at"))
                 .and_then(|v| v.as_i64())
                 .unwrap_or(timestamp_ms()),
@@ -976,10 +988,16 @@ impl ExchangeTrader for BitmartTrader {
         let formatted_symbol = self.format_symbol(symbol);
 
         // Get current position first
-        let response = self.signed_get(&format!("/contract/private/position?symbol={}", formatted_symbol)).await?;
+        let response = self
+            .signed_get(&format!(
+                "/contract/private/position?symbol={}",
+                formatted_symbol
+            ))
+            .await?;
 
         let data = response.get("data").unwrap_or(&serde_json::Value::Null);
-        let position_size: f64 = data.get("current_qty")
+        let position_size: f64 = data
+            .get("current_qty")
             .or_else(|| data.get("vol"))
             .and_then(|v| v.as_str())
             .and_then(|s| s.parse().ok())
@@ -1040,7 +1058,12 @@ impl ExchangeTrader for BitmartTrader {
         format!("{}_USDT", s)
     }
 
-    async fn test_ws_orderbook(&self, symbol: &str, depth: u32, timeout_ms: u64) -> Result<WsTestResult> {
+    async fn test_ws_orderbook(
+        &self,
+        symbol: &str,
+        depth: u32,
+        timeout_ms: u64,
+    ) -> Result<WsTestResult> {
         let formatted_symbol = self.format_symbol(symbol);
         let ws_url = self.ws_public_url();
 
@@ -1062,7 +1085,7 @@ impl ExchangeTrader for BitmartTrader {
             "args": [channel]
         });
 
-        ws_stream.send(Message::Text(sub_msg.to_string().into())).await?;
+        ws_stream.send(Message::Text(sub_msg.to_string())).await?;
 
         let mut messages_received = 0u32;
         let mut data_sample = None;
@@ -1145,7 +1168,7 @@ impl ExchangeTrader for BitmartTrader {
             "args": [channel]
         });
 
-        ws_stream.send(Message::Text(sub_msg.to_string().into())).await?;
+        ws_stream.send(Message::Text(sub_msg.to_string())).await?;
 
         let mut messages_received = 0u32;
         let mut data_sample = None;
@@ -1228,7 +1251,7 @@ impl ExchangeTrader for BitmartTrader {
             "args": [channel]
         });
 
-        ws_stream.send(Message::Text(sub_msg.to_string().into())).await?;
+        ws_stream.send(Message::Text(sub_msg.to_string())).await?;
 
         let mut messages_received = 0u32;
         let mut data_sample = None;
@@ -1330,10 +1353,7 @@ impl ExchangeTrader for BitmartTrader {
                             "args": [api_key.clone(), timestamp.to_string(), signature]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(auth_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(auth_msg.to_string())).await {
                             error!("[{}] Failed to send login: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1346,8 +1366,11 @@ impl ExchangeTrader for BitmartTrader {
                         if let Some(msg_result) = ws_stream.next().await {
                             match msg_result {
                                 Ok(Message::Text(text)) => {
-                                    if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&text) {
-                                        if resp.get("event").and_then(|v| v.as_str()) == Some("login")
+                                    if let Ok(resp) =
+                                        serde_json::from_str::<serde_json::Value>(&text)
+                                    {
+                                        if resp.get("event").and_then(|v| v.as_str())
+                                            == Some("login")
                                             && resp.get("errorCode").is_none()
                                         {
                                             info!("[{}] Private WS authenticated", exchange_name);
@@ -1359,11 +1382,17 @@ impl ExchangeTrader for BitmartTrader {
                                 }
                                 Ok(Message::Binary(data)) => {
                                     if let Ok(text) = decompress_gzip(&data) {
-                                        if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&text) {
-                                            if resp.get("event").and_then(|v| v.as_str()) == Some("login")
+                                        if let Ok(resp) =
+                                            serde_json::from_str::<serde_json::Value>(&text)
+                                        {
+                                            if resp.get("event").and_then(|v| v.as_str())
+                                                == Some("login")
                                                 && resp.get("errorCode").is_none()
                                             {
-                                                info!("[{}] Private WS authenticated", exchange_name);
+                                                info!(
+                                                    "[{}] Private WS authenticated",
+                                                    exchange_name
+                                                );
                                                 authenticated = true;
                                             }
                                         }
@@ -1391,10 +1420,7 @@ impl ExchangeTrader for BitmartTrader {
                             "args": [channel]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(sub_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(sub_msg.to_string())).await {
                             error!("[{}] Failed to subscribe: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1482,15 +1508,18 @@ fn process_order_message(
             for o in orders {
                 let event = OrderUpdateEvent {
                     exchange: exchange_name.to_string(),
-                    order_id: o.get("order_id")
+                    order_id: o
+                        .get("order_id")
                         .or_else(|| o.get("orderId"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string(),
-                    client_order_id: o.get("client_order_id")
+                    client_order_id: o
+                        .get("client_order_id")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string()),
-                    symbol: o.get("symbol")
+                    symbol: o
+                        .get("symbol")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string(),
@@ -1510,31 +1539,38 @@ fn process_order_message(
                     } else {
                         OrderType::Limit
                     },
-                    price: o.get("price")
+                    price: o
+                        .get("price")
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0),
-                    quantity: o.get("size")
+                    quantity: o
+                        .get("size")
                         .or_else(|| o.get("quantity"))
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0),
-                    filled_quantity: o.get("filled_size")
+                    filled_quantity: o
+                        .get("filled_size")
                         .or_else(|| o.get("filled_qty"))
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0.0),
-                    avg_fill_price: o.get("price_avg")
+                    avg_fill_price: o
+                        .get("price_avg")
                         .or_else(|| o.get("avg_price"))
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok()),
-                    fee: o.get("fee")
+                    fee: o
+                        .get("fee")
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse().ok()),
-                    fee_currency: o.get("fee_currency")
+                    fee_currency: o
+                        .get("fee_currency")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string()),
-                    exchange_timestamp: o.get("create_time")
+                    exchange_timestamp: o
+                        .get("create_time")
                         .or_else(|| o.get("ms_t"))
                         .and_then(|v| v.as_i64())
                         .unwrap_or(0),
@@ -1584,7 +1620,13 @@ mod tests {
 
     #[test]
     fn test_signature() {
-        let trader = BitmartTrader::new("test_key", "test_secret", Some("test_memo"), false, MarketType::Spot);
+        let trader = BitmartTrader::new(
+            "test_key",
+            "test_secret",
+            Some("test_memo"),
+            false,
+            MarketType::Spot,
+        );
         let timestamp = 1234567890000i64;
         let signature = trader.sign_request(timestamp, "");
         // Just verify it produces a hex string of correct length (64 chars for SHA256)
@@ -1594,7 +1636,13 @@ mod tests {
 
     #[test]
     fn test_ws_signature() {
-        let trader = BitmartTrader::new("test_key", "test_secret", Some("test_memo"), false, MarketType::Spot);
+        let trader = BitmartTrader::new(
+            "test_key",
+            "test_secret",
+            Some("test_memo"),
+            false,
+            MarketType::Spot,
+        );
         let timestamp = 1234567890000i64;
         let signature = trader.ws_auth_signature(timestamp);
         assert_eq!(signature.len(), 64);

@@ -10,19 +10,19 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::{error, info};
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
 use sdktrader_core::models::{
     AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
     OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
     OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
 };
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 
 use crate::config::endpoints;
 use crate::helpers::{format_symbol, parse_order_status};
 use crate::models::{
-    FuturesBalance, FuturesOrderInfo, FuturesOrderResult, FuturesPosition,
-    FuturesResponse, SpotBalanceResponse, SpotOrderResponse,
+    FuturesBalance, FuturesOrderInfo, FuturesOrderResult, FuturesPosition, FuturesResponse,
+    SpotBalanceResponse, SpotOrderResponse,
 };
 use crate::services::{MarketStreamService, RestService, UserDataService};
 
@@ -129,10 +129,8 @@ impl ExchangeTrader for MexcTrader {
 
     async fn get_server_time(&self) -> Result<i64> {
         if self.market_type == MarketType::Spot {
-            let response: serde_json::Value = self
-                .rest_service
-                .public_get(endpoints::spot::TIME)
-                .await?;
+            let response: serde_json::Value =
+                self.rest_service.public_get(endpoints::spot::TIME).await?;
             Ok(response["serverTime"].as_i64().unwrap_or(timestamp_ms()))
         } else {
             let response: serde_json::Value = self
@@ -180,12 +178,10 @@ impl ExchangeTrader for MexcTrader {
             let usdt = response
                 .data
                 .and_then(|balances| {
-                    balances.iter().find(|b| b.currency == "USDT").map(|b| {
-                        (
-                            b.available_balance + b.frozen_balance,
-                            b.available_balance,
-                        )
-                    })
+                    balances
+                        .iter()
+                        .find(|b| b.currency == "USDT")
+                        .map(|b| (b.available_balance + b.frozen_balance, b.available_balance))
                 })
                 .ok_or_else(|| anyhow::anyhow!("USDT balance not found in MEXC futures account"))?;
 
@@ -234,18 +230,10 @@ impl ExchangeTrader for MexcTrader {
                     .as_str()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0.0),
-                bid_price: response["bidPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                ask_price: response["askPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                high_24h: response["highPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
-                low_24h: response["lowPrice"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok()),
+                bid_price: response["bidPrice"].as_str().and_then(|s| s.parse().ok()),
+                ask_price: response["askPrice"].as_str().and_then(|s| s.parse().ok()),
+                high_24h: response["highPrice"].as_str().and_then(|s| s.parse().ok()),
+                low_24h: response["lowPrice"].as_str().and_then(|s| s.parse().ok()),
                 volume_24h: response["volume"].as_str().and_then(|s| s.parse().ok()),
                 turnover_24h: response["quoteVolume"]
                     .as_str()
@@ -294,10 +282,20 @@ impl ExchangeTrader for MexcTrader {
         let limit = depth.min(100);
 
         let response: serde_json::Value = if self.market_type == MarketType::Spot {
-            let endpoint = format!("{}?symbol={}&limit={}", endpoints::spot::DEPTH, formatted, limit);
+            let endpoint = format!(
+                "{}?symbol={}&limit={}",
+                endpoints::spot::DEPTH,
+                formatted,
+                limit
+            );
             self.rest_service.public_get(&endpoint).await?
         } else {
-            let endpoint = format!("{}/{}?limit={}", endpoints::futures::DEPTH, formatted, limit);
+            let endpoint = format!(
+                "{}/{}?limit={}",
+                endpoints::futures::DEPTH,
+                formatted,
+                limit
+            );
             self.rest_service.public_get(&endpoint).await?
         };
 
@@ -314,7 +312,10 @@ impl ExchangeTrader for MexcTrader {
                     .filter_map(|level| {
                         let price: f64 = level[0].as_str()?.parse().ok()?;
                         let qty: f64 = level[1].as_str()?.parse().ok()?;
-                        Some(OrderbookLevel { price, quantity: qty })
+                        Some(OrderbookLevel {
+                            price,
+                            quantity: qty,
+                        })
                     })
                     .collect()
             })
@@ -327,7 +328,10 @@ impl ExchangeTrader for MexcTrader {
                     .filter_map(|level| {
                         let price: f64 = level[0].as_str()?.parse().ok()?;
                         let qty: f64 = level[1].as_str()?.parse().ok()?;
-                        Some(OrderbookLevel { price, quantity: qty })
+                        Some(OrderbookLevel {
+                            price,
+                            quantity: qty,
+                        })
                     })
                     .collect()
             })
@@ -530,7 +534,12 @@ impl ExchangeTrader for MexcTrader {
 
             let entry_price = if executed_qty > 0.0 {
                 Some(quote_qty / executed_qty)
-            } else if response.status.as_ref().map(|s| !s.is_empty()).unwrap_or(false) {
+            } else if response
+                .status
+                .as_ref()
+                .map(|s| !s.is_empty())
+                .unwrap_or(false)
+            {
                 // If not fully filled yet, use None
                 None
             } else {
@@ -910,7 +919,9 @@ impl ExchangeTrader for MexcTrader {
         depth: u32,
         timeout_ms: u64,
     ) -> Result<WsTestResult> {
-        self.market_stream.test_orderbook(symbol, depth, timeout_ms).await
+        self.market_stream
+            .test_orderbook(symbol, depth, timeout_ms)
+            .await
     }
 
     async fn test_ws_trades(&self, symbol: &str, timeout_ms: u64) -> Result<WsTestResult> {

@@ -7,18 +7,18 @@
 //! - Proper error handling (no silent unwrap_or defaults)
 //! - Private WebSocket subscription for order updates
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use crate::models::*;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -604,7 +604,6 @@ impl BybitTrader {
     }
 }
 
-
 #[async_trait]
 impl ExchangeTrader for BybitTrader {
     fn exchange_name(&self) -> &str {
@@ -762,7 +761,10 @@ impl ExchangeTrader for BybitTrader {
                     turnover_24h: t.turnover_24h.as_ref().and_then(|p| p.parse().ok()),
                     change_24h: None,
                     open_interest: t.open_interest.as_ref().and_then(|p| p.parse().ok()),
-                    open_interest_value: t.open_interest_value.as_ref().and_then(|p| p.parse().ok()),
+                    open_interest_value: t
+                        .open_interest_value
+                        .as_ref()
+                        .and_then(|p| p.parse().ok()),
                     funding_rate: t.funding_rate.as_ref().and_then(|p| p.parse().ok()),
                     next_funding_time: t.next_funding_time.as_ref().and_then(|p| p.parse().ok()),
                     mark_price: t.mark_price.as_ref().and_then(|p| p.parse().ok()),
@@ -956,8 +958,15 @@ impl ExchangeTrader for BybitTrader {
         quantity: f64,
     ) -> Result<OrderResult> {
         let formatted_symbol = self.format_symbol(symbol);
-        self.place_order_ws(&formatted_symbol, side, OrderType::Market, quantity, None, false)
-            .await
+        self.place_order_ws(
+            &formatted_symbol,
+            side,
+            OrderType::Market,
+            quantity,
+            None,
+            false,
+        )
+        .await
     }
 
     async fn place_limit_order(

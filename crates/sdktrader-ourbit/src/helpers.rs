@@ -7,9 +7,9 @@ use sdktrader_core::models::{OrderSide, OrderStatus, OrderType};
 use tracing::warn;
 
 use crate::config::{
-    INITIAL_RECONNECT_DELAY_SECS, MAX_RECONNECT_DELAY_SECS,
-    ORDER_SIDE_OPEN_LONG, ORDER_SIDE_CLOSE_SHORT, ORDER_SIDE_OPEN_SHORT, ORDER_SIDE_CLOSE_LONG,
-    ORDER_TYPE_LIMIT, ORDER_TYPE_POST_ONLY, ORDER_TYPE_IOC, ORDER_TYPE_FOK, ORDER_TYPE_MARKET,
+    INITIAL_RECONNECT_DELAY_SECS, MAX_RECONNECT_DELAY_SECS, ORDER_SIDE_CLOSE_LONG,
+    ORDER_SIDE_CLOSE_SHORT, ORDER_SIDE_OPEN_LONG, ORDER_SIDE_OPEN_SHORT, ORDER_TYPE_FOK,
+    ORDER_TYPE_IOC, ORDER_TYPE_LIMIT, ORDER_TYPE_MARKET, ORDER_TYPE_POST_ONLY,
 };
 
 /// Calculate next reconnect delay with exponential backoff (capped).
@@ -109,7 +109,10 @@ pub fn convert_order_type_from_ourbit(order_type: i32) -> OrderType {
         ORDER_TYPE_FOK => OrderType::Market,
         ORDER_TYPE_MARKET => OrderType::Market,
         _ => {
-            warn!("Unknown Ourbit order type: {}, defaulting to Market", order_type);
+            warn!(
+                "Unknown Ourbit order type: {}, defaulting to Market",
+                order_type
+            );
             OrderType::Market
         }
     }

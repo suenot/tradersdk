@@ -17,8 +17,8 @@ type HmacSha256 = Hmac<Sha256>;
 /// assert_eq!(signature.len(), 64); // 32 bytes = 64 hex chars
 /// ```
 pub fn hmac_sign(secret: &str, message: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-        .expect("HMAC can take key of any size");
+    let mut mac =
+        HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
     mac.update(message.as_bytes());
 
     let result = mac.finalize();
@@ -27,12 +27,15 @@ pub fn hmac_sign(secret: &str, message: &str) -> String {
 
 /// Sign a message with HMAC-SHA256 and return base64.
 pub fn hmac_sign_base64(secret: &str, message: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-        .expect("HMAC can take key of any size");
+    let mut mac =
+        HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
     mac.update(message.as_bytes());
 
     let result = mac.finalize();
-    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, result.into_bytes())
+    base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        result.into_bytes(),
+    )
 }
 
 /// Get current timestamp in milliseconds.
@@ -97,10 +100,7 @@ pub fn parse_symbol(symbol: &str) -> Option<(String, String)> {
 /// Normalize symbol to standard format (BTCUSDT).
 pub fn normalize_symbol(symbol: &str) -> String {
     let symbol = symbol.to_uppercase();
-    symbol
-        .replace("/", "")
-        .replace("-", "")
-        .replace("_", "")
+    symbol.replace("/", "").replace("-", "").replace("_", "")
 }
 
 /// Calculate slippage percentage.

@@ -51,7 +51,10 @@ impl ProxyManager {
             filtered.push(HOST_CONNECTION.to_string());
         }
 
-        let proxy_count = filtered.iter().filter(|p| p.as_str() != HOST_CONNECTION).count();
+        let proxy_count = filtered
+            .iter()
+            .filter(|p| p.as_str() != HOST_CONNECTION)
+            .count();
         info!(
             "ProxyManager initialized with {} connections ({} proxies{}), cooldown: {}ms",
             filtered.len(),
@@ -310,11 +313,7 @@ mod tests {
 
     #[test]
     fn test_reset_cooldowns() {
-        let mut pm = ProxyManager::new(
-            vec!["http:a:1:u:p:enabled".to_string()],
-            60_000,
-            false,
-        );
+        let mut pm = ProxyManager::new(vec!["http:a:1:u:p:enabled".to_string()], 60_000, false);
         let proxy = pm.get_next_proxy().unwrap();
         assert!(!pm.is_available(&proxy));
         pm.reset_cooldowns();

@@ -8,13 +8,13 @@ use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::models::{MarketType, OrderSide, OrderType, OrderUpdateEvent};
 use crate::config::{
-    SPOT_MAINNET_URL, FUTURES_MAINNET_URL, SPOT_WS_URL, FUTURES_WS_URL,
-    INITIAL_RECONNECT_DELAY_SECS,
+    FUTURES_MAINNET_URL, FUTURES_WS_URL, INITIAL_RECONNECT_DELAY_SECS, SPOT_MAINNET_URL,
+    SPOT_WS_URL,
 };
 use crate::helpers::{next_reconnect_delay, parse_order_status};
+use sdktrader_core::models::{MarketType, OrderSide, OrderType, OrderUpdateEvent};
+use sdktrader_core::utils::timestamp_ms;
 
 /// Log order update event.
 fn log_order_update(event: &OrderUpdateEvent) {

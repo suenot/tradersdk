@@ -1,9 +1,9 @@
 //! WebSocket trading service for Binance.
 
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::models::{MarketType, OrderResult, OrderSide, OrderType};
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
+use sdktrader_core::models::{MarketType, OrderResult, OrderSide, OrderType};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info};
 

@@ -8,18 +8,18 @@
 //! - Proper error handling with BingX error codes
 
 use super::models::*;
-use sdktrader_core::utils::{hmac_sign, timestamp_ms};
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use flate2::read::GzDecoder;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::{hmac_sign, timestamp_ms};
+use sdktrader_core::ExchangeTrader;
 use std::io::Read;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -395,8 +395,9 @@ impl ExchangeTrader for BingxTrader {
                 Ok(AccountBalance::default())
             }
             MarketType::Spot => {
-                let response: BingxResponse<SpotBalanceData> =
-                    self.signed_get("/openApi/spot/v1/account/balance", "").await?;
+                let response: BingxResponse<SpotBalanceData> = self
+                    .signed_get("/openApi/spot/v1/account/balance", "")
+                    .await?;
 
                 if !response.is_success() {
                     anyhow::bail!("BingX API error: {}", response.error_message());
@@ -477,7 +478,10 @@ impl ExchangeTrader for BingxTrader {
 
         let symbol = symbol.ok_or_else(|| anyhow::anyhow!("Symbol required for leverage"))?;
         let formatted_symbol = self.format_symbol(symbol);
-        let params = format!("symbol={}&side=BOTH&leverage={}", formatted_symbol, leverage);
+        let params = format!(
+            "symbol={}&side=BOTH&leverage={}",
+            formatted_symbol, leverage
+        );
 
         let response: BingxResponse<LeverageData> = self
             .signed_post("/openApi/swap/v2/trade/leverage", &params)
@@ -660,7 +664,11 @@ impl ExchangeTrader for BingxTrader {
             self.signed_delete(endpoint, &params).await?;
 
         if !response.is_success() {
-            warn!("Failed to cancel order {}: {}", order_id, response.error_message());
+            warn!(
+                "Failed to cancel order {}: {}",
+                order_id,
+                response.error_message()
+            );
             return Ok(false);
         }
 
@@ -757,7 +765,10 @@ impl ExchangeTrader for BingxTrader {
 
         match position {
             Some(pos) => {
-                let size: f64 = pos.position_amt.parse().context("Failed to parse position size")?;
+                let size: f64 = pos
+                    .position_amt
+                    .parse()
+                    .context("Failed to parse position size")?;
                 if size.abs() < 0.000001 {
                     return Ok(OrderResult::failure(
                         formatted_symbol,
@@ -782,10 +793,7 @@ impl ExchangeTrader for BingxTrader {
                 }
 
                 // Get the order IDs from the response
-                let order_ids = response
-                    .data
-                    .and_then(|d| d.success)
-                    .unwrap_or_default();
+                let order_ids = response.data.and_then(|d| d.success).unwrap_or_default();
 
                 let order_id = order_ids
                     .first()
@@ -796,7 +804,10 @@ impl ExchangeTrader for BingxTrader {
                     })
                     .unwrap_or_default();
 
-                info!("BingX position closed for {}: order_id={}", formatted_symbol, order_id);
+                info!(
+                    "BingX position closed for {}: order_id={}",
+                    formatted_symbol, order_id
+                );
 
                 let close_side = if pos.position_side == "LONG" {
                     OrderSide::Sell
@@ -925,8 +936,9 @@ impl ExchangeTrader for BingxTrader {
         let start = std::time::Instant::now();
         let ws_url = self.ws_public_url();
 
-        let (mut ws_stream, _) =
-            connect_async(ws_url).await.context("Failed to connect to BingX WebSocket")?;
+        let (mut ws_stream, _) = connect_async(ws_url)
+            .await
+            .context("Failed to connect to BingX WebSocket")?;
 
         let connect_time = start.elapsed().as_millis() as u64;
 
@@ -1022,8 +1034,9 @@ impl ExchangeTrader for BingxTrader {
         let start = std::time::Instant::now();
         let ws_url = self.ws_public_url();
 
-        let (mut ws_stream, _) =
-            connect_async(ws_url).await.context("Failed to connect to BingX WebSocket")?;
+        let (mut ws_stream, _) = connect_async(ws_url)
+            .await
+            .context("Failed to connect to BingX WebSocket")?;
 
         let connect_time = start.elapsed().as_millis() as u64;
 
@@ -1147,7 +1160,10 @@ impl ExchangeTrader for BingxTrader {
             low_24h: data.low_price.as_ref().and_then(|s| s.parse().ok()),
             volume_24h: data.volume.as_ref().and_then(|s| s.parse().ok()),
             turnover_24h: data.quote_volume.as_ref().and_then(|s| s.parse().ok()),
-            change_24h: data.price_change_percent.as_ref().and_then(|s| s.parse().ok()),
+            change_24h: data
+                .price_change_percent
+                .as_ref()
+                .and_then(|s| s.parse().ok()),
             open_interest: data.open_interest.as_ref().and_then(|s| s.parse().ok()),
             open_interest_value: None,
             funding_rate: None, // Need separate API call
@@ -1163,8 +1179,9 @@ impl ExchangeTrader for BingxTrader {
         let start = std::time::Instant::now();
         let ws_url = self.ws_public_url();
 
-        let (mut ws_stream, _) =
-            connect_async(ws_url).await.context("Failed to connect to BingX WebSocket")?;
+        let (mut ws_stream, _) = connect_async(ws_url)
+            .await
+            .context("Failed to connect to BingX WebSocket")?;
 
         let connect_time = start.elapsed().as_millis() as u64;
 
@@ -1262,7 +1279,9 @@ impl ExchangeTrader for BingxTrader {
             .client
             .get(format!(
                 "{}/openApi/swap/v2/quote/fundingRate?symbol={}&limit={}",
-                self.base_url, formatted_symbol, limit.min(100)
+                self.base_url,
+                formatted_symbol,
+                limit.min(100)
             ))
             .send()
             .await?
@@ -1279,10 +1298,7 @@ impl ExchangeTrader for BingxTrader {
             .iter()
             .filter_map(|e| {
                 Some(FundingRateEntry {
-                    symbol: e
-                        .symbol
-                        .clone()
-                        .unwrap_or_else(|| formatted_symbol.clone()),
+                    symbol: e.symbol.clone().unwrap_or_else(|| formatted_symbol.clone()),
                     funding_rate: e.funding_rate.parse().ok()?,
                     funding_time: e.funding_time,
                 })
@@ -1399,10 +1415,7 @@ impl ExchangeTrader for BingxTrader {
                         listen_key
                     )
                 } else {
-                    format!(
-                        "{}?listenKey={}",
-                        MAINNET_WS_USER_URL, listen_key
-                    )
+                    format!("{}?listenKey={}", MAINNET_WS_USER_URL, listen_key)
                 };
 
                 info!("[{}] Connecting to user data stream", exchange_name);

@@ -10,8 +10,10 @@ use axum::{
 };
 use tokio::sync::RwLock;
 
-use sdktrader_providers::{create_trader, supported_exchanges, ExchangeCredentials, ExchangeTrader};
 use sdktrader_core::models::MarketType;
+use sdktrader_providers::{
+    create_trader, supported_exchanges, ExchangeCredentials, ExchangeTrader,
+};
 
 use crate::config::Config;
 use crate::types::*;
@@ -70,9 +72,7 @@ pub async fn list_adapter_methods() -> impl IntoResponse {
 }
 
 /// List bots available for testing.
-pub async fn list_bots_for_testing(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn list_bots_for_testing(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let config = state.config.read().await;
 
     let bots: Vec<BotTestInfo> = config
@@ -194,30 +194,36 @@ async fn run_test_method(
     let start = Instant::now();
 
     let (success, result, error) = match method {
-        "test_connection" => {
-            match trader.test_connection().await {
-                Ok(connected) => (true, Some(serde_json::json!({ "connected": connected })), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
-        "get_server_time" => {
-            match trader.get_server_time().await {
-                Ok(time) => (true, Some(serde_json::json!({ "server_time": time })), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
-        "get_current_price" => {
-            match trader.get_current_price(symbol).await {
-                Ok(price) => (true, Some(serde_json::json!({ "price": price, "symbol": symbol })), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
+        "test_connection" => match trader.test_connection().await {
+            Ok(connected) => (
+                true,
+                Some(serde_json::json!({ "connected": connected })),
+                None,
+            ),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
+        "get_server_time" => match trader.get_server_time().await {
+            Ok(time) => (true, Some(serde_json::json!({ "server_time": time })), None),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
+        "get_current_price" => match trader.get_current_price(symbol).await {
+            Ok(price) => (
+                true,
+                Some(serde_json::json!({ "price": price, "symbol": symbol })),
+                None,
+            ),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
         "get_balance" => {
             if !has_credentials {
                 (false, None, Some("Requires API credentials".to_string()))
             } else {
                 match trader.get_balance().await {
-                    Ok(balance) => (true, Some(serde_json::to_value(&balance).unwrap_or_default()), None),
+                    Ok(balance) => (
+                        true,
+                        Some(serde_json::to_value(&balance).unwrap_or_default()),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }
@@ -226,42 +232,67 @@ async fn run_test_method(
             if !has_credentials {
                 (false, None, Some("Requires API credentials".to_string()))
             } else if market_type == MarketType::Spot {
-                (false, None, Some("Not available for spot market".to_string()))
+                (
+                    false,
+                    None,
+                    Some("Not available for spot market".to_string()),
+                )
             } else {
                 match trader.set_leverage(Some(symbol), 10).await {
-                    Ok(success) => (true, Some(serde_json::json!({ "leverage_set": success, "leverage": 10 })), None),
+                    Ok(success) => (
+                        true,
+                        Some(serde_json::json!({ "leverage_set": success, "leverage": 10 })),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }
         }
         "format_symbol" => {
             let formatted = trader.format_symbol(symbol);
-            (true, Some(serde_json::json!({ "input": symbol, "formatted": formatted })), None)
+            (
+                true,
+                Some(serde_json::json!({ "input": symbol, "formatted": formatted })),
+                None,
+            )
         }
-        "get_orderbook" => {
-            match trader.get_orderbook(symbol, 10).await {
-                Ok(orderbook) => (true, Some(serde_json::to_value(&orderbook).unwrap_or_default()), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
-        "test_ws_orderbook" => {
-            match trader.test_ws_orderbook(symbol, 10, 5000).await {
-                Ok(result) => (true, Some(serde_json::to_value(&result).unwrap_or_default()), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
-        "test_ws_trades" => {
-            match trader.test_ws_trades(symbol, 5000).await {
-                Ok(result) => (true, Some(serde_json::to_value(&result).unwrap_or_default()), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
+        "get_orderbook" => match trader.get_orderbook(symbol, 10).await {
+            Ok(orderbook) => (
+                true,
+                Some(serde_json::to_value(&orderbook).unwrap_or_default()),
+                None,
+            ),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
+        "test_ws_orderbook" => match trader.test_ws_orderbook(symbol, 10, 5000).await {
+            Ok(result) => (
+                true,
+                Some(serde_json::to_value(&result).unwrap_or_default()),
+                None,
+            ),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
+        "test_ws_trades" => match trader.test_ws_trades(symbol, 5000).await {
+            Ok(result) => (
+                true,
+                Some(serde_json::to_value(&result).unwrap_or_default()),
+                None,
+            ),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
         "test_market_order" => {
             if !has_credentials {
                 (false, None, Some("Requires API credentials".to_string()))
             } else {
-                match trader.test_market_order(symbol, sdktrader_core::models::OrderSide::Buy, 100.0).await {
-                    Ok(result) => (true, Some(serde_json::to_value(&result).unwrap_or_default()), None),
+                match trader
+                    .test_market_order(symbol, sdktrader_core::models::OrderSide::Buy, 100.0)
+                    .await
+                {
+                    Ok(result) => (
+                        true,
+                        Some(serde_json::to_value(&result).unwrap_or_default()),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }
@@ -272,44 +303,77 @@ async fn run_test_method(
             } else {
                 // Get current price for limit order
                 let price = trader.get_current_price(symbol).await.unwrap_or(50000.0) * 0.95;
-                match trader.test_limit_order(symbol, sdktrader_core::models::OrderSide::Buy, 100.0, price).await {
-                    Ok(result) => (true, Some(serde_json::to_value(&result).unwrap_or_default()), None),
+                match trader
+                    .test_limit_order(symbol, sdktrader_core::models::OrderSide::Buy, 100.0, price)
+                    .await
+                {
+                    Ok(result) => (
+                        true,
+                        Some(serde_json::to_value(&result).unwrap_or_default()),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }
         }
-        "get_ticker" => {
-            match trader.get_ticker(symbol).await {
-                Ok(ticker) => (true, Some(serde_json::to_value(&ticker).unwrap_or_default()), None),
-                Err(e) => (false, None, Some(e.to_string())),
-            }
-        }
+        "get_ticker" => match trader.get_ticker(symbol).await {
+            Ok(ticker) => (
+                true,
+                Some(serde_json::to_value(&ticker).unwrap_or_default()),
+                None,
+            ),
+            Err(e) => (false, None, Some(e.to_string())),
+        },
         "test_ws_ticker" => {
             if market_type == MarketType::Spot {
-                (false, None, Some("Only available for perpetual/swap markets".to_string()))
+                (
+                    false,
+                    None,
+                    Some("Only available for perpetual/swap markets".to_string()),
+                )
             } else {
                 match trader.test_ws_ticker(symbol, 5000).await {
-                    Ok(result) => (true, Some(serde_json::to_value(&result).unwrap_or_default()), None),
+                    Ok(result) => (
+                        true,
+                        Some(serde_json::to_value(&result).unwrap_or_default()),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }
         }
         "get_funding_rate_history" => {
             if market_type == MarketType::Spot {
-                (false, None, Some("Only available for perpetual/swap markets".to_string()))
+                (
+                    false,
+                    None,
+                    Some("Only available for perpetual/swap markets".to_string()),
+                )
             } else {
                 match trader.get_funding_rate_history(symbol, 10).await {
-                    Ok(history) => (true, Some(serde_json::to_value(&history).unwrap_or_default()), None),
+                    Ok(history) => (
+                        true,
+                        Some(serde_json::to_value(&history).unwrap_or_default()),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }
         }
         "get_open_interest_history" => {
             if market_type == MarketType::Spot {
-                (false, None, Some("Only available for perpetual/swap markets".to_string()))
+                (
+                    false,
+                    None,
+                    Some("Only available for perpetual/swap markets".to_string()),
+                )
             } else {
                 match trader.get_open_interest_history(symbol, "5m", 10).await {
-                    Ok(history) => (true, Some(serde_json::to_value(&history).unwrap_or_default()), None),
+                    Ok(history) => (
+                        true,
+                        Some(serde_json::to_value(&history).unwrap_or_default()),
+                        None,
+                    ),
                     Err(e) => (false, None, Some(e.to_string())),
                 }
             }

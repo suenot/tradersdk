@@ -8,18 +8,18 @@
 //! - Proper passphrase handling for authentication
 
 use crate::models::*;
-use sdktrader_core::utils::timestamp_ms;
-use sdktrader_core::ExchangeTrader;
-use sdktrader_core::models::{
-    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
-    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
-    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use sdktrader_core::models::{
+    AccountBalance, ExchangeCapabilities, FundingRateEntry, MarketType, OpenInterestEntry,
+    OrderInfo, OrderResult, OrderSide, OrderStatus, OrderType, OrderUpdateEvent, Orderbook,
+    OrderbookLevel, TickerInfo, TimeInForce, WsTestResult,
+};
+use sdktrader_core::utils::timestamp_ms;
+use sdktrader_core::ExchangeTrader;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -264,7 +264,7 @@ impl BitgetTrader {
         let auth_json = serde_json::to_string(&auth_msg)?;
         debug!("Sending WS auth: {}", auth_json);
 
-        ws_stream.send(Message::Text(auth_json.into())).await?;
+        ws_stream.send(Message::Text(auth_json)).await?;
 
         // Wait for auth response
         let timeout = tokio::time::Duration::from_secs(5);
@@ -360,7 +360,7 @@ impl BitgetTrader {
         debug!("Sending WS order: {}", order_json);
 
         // Send order
-        ws_stream.send(Message::Text(order_json.into())).await?;
+        ws_stream.send(Message::Text(order_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -468,7 +468,7 @@ impl BitgetTrader {
         debug!("Sending WS cancel: {}", cancel_json);
 
         // Send cancel request
-        ws_stream.send(Message::Text(cancel_json.into())).await?;
+        ws_stream.send(Message::Text(cancel_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -553,7 +553,7 @@ impl BitgetTrader {
         debug!("Sending WS amend: {}", amend_json);
 
         // Send amend request
-        ws_stream.send(Message::Text(amend_json.into())).await?;
+        ws_stream.send(Message::Text(amend_json)).await?;
 
         // Wait for response
         let timeout = tokio::time::Duration::from_secs(10);
@@ -739,7 +739,7 @@ impl ExchangeTrader for BitgetTrader {
             if response.is_success() {
                 if let Some(accounts) = response.data {
                     for account in &accounts {
-                        if account.margin_coin.as_ref().map(|s| s.as_str()) == Some("USDT") {
+                        if account.margin_coin.as_deref() == Some("USDT") {
                             let available: f64 = account
                                 .available
                                 .as_ref()
@@ -1498,7 +1498,7 @@ impl ExchangeTrader for BitgetTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1563,7 +1563,7 @@ impl ExchangeTrader for BitgetTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1628,7 +1628,7 @@ impl ExchangeTrader for BitgetTrader {
         });
 
         ws_stream
-            .send(Message::Text(subscribe_msg.to_string().into()))
+            .send(Message::Text(subscribe_msg.to_string()))
             .await?;
 
         let mut messages_received = 0u32;
@@ -1719,10 +1719,7 @@ impl ExchangeTrader for BitgetTrader {
                             }]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(auth_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(auth_msg.to_string())).await {
                             error!("[{}] Failed to send login: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;
@@ -1757,10 +1754,7 @@ impl ExchangeTrader for BitgetTrader {
                             "args": [{"instType": inst_type, "channel": "orders", "instId": "default"}]
                         });
 
-                        if let Err(e) = ws_stream
-                            .send(Message::Text(sub_msg.to_string().into()))
-                            .await
-                        {
+                        if let Err(e) = ws_stream.send(Message::Text(sub_msg.to_string())).await {
                             error!("[{}] Failed to subscribe: {}", exchange_name, e);
                             tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay))
                                 .await;

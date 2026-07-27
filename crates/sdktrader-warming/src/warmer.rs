@@ -28,7 +28,7 @@ impl Default for CircuitBreakerConfig {
 }
 
 /// Internal state for the circuit breaker of a single exchange.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct CircuitBreakerState {
     /// Whether the circuit breaker is currently open (blocking requests).
     open: bool,
@@ -36,16 +36,6 @@ struct CircuitBreakerState {
     opened_at: Option<i64>,
     /// When the last recovery attempt was made (epoch ms).
     last_recovery_attempt: Option<i64>,
-}
-
-impl Default for CircuitBreakerState {
-    fn default() -> Self {
-        Self {
-            open: false,
-            opened_at: None,
-            last_recovery_attempt: None,
-        }
-    }
 }
 
 /// Server time warmer that queries exchange server time endpoints
@@ -110,10 +100,7 @@ impl ServerTimeWarmer {
 
     /// Check if the circuit breaker allows a request for the given exchange.
     fn is_request_allowed(&mut self, exchange: &str) -> bool {
-        let state = self
-            .breaker_states
-            .entry(exchange.to_string())
-            .or_default();
+        let state = self.breaker_states.entry(exchange.to_string()).or_default();
 
         if !state.open {
             return true;
@@ -125,7 +112,10 @@ impl ServerTimeWarmer {
         if let Some(opened_at) = state.opened_at {
             if now - opened_at >= self.circuit_breaker.timeout_ms {
                 // Timeout expired, allow recovery attempt
-                debug!(exchange, "Circuit breaker timeout expired, allowing recovery");
+                debug!(
+                    exchange,
+                    "Circuit breaker timeout expired, allowing recovery"
+                );
                 state.last_recovery_attempt = Some(now);
                 return true;
             }
@@ -146,18 +136,12 @@ impl ServerTimeWarmer {
     /// Record a successful request and potentially close the circuit breaker.
     fn record_success(&mut self, exchange: &str, latency_ms: f64, _server_time: Option<i64>) {
         // Update latency sum first (separate HashMap, no conflict)
-        let sum = self
-            .latency_sums
-            .entry(exchange.to_string())
-            .or_insert(0.0);
+        let sum = self.latency_sums.entry(exchange.to_string()).or_insert(0.0);
         *sum += latency_ms;
         let latency_sum = *sum;
 
         // Close circuit breaker on success
-        let state = self
-            .breaker_states
-            .entry(exchange.to_string())
-            .or_default();
+        let state = self.breaker_states.entry(exchange.to_string()).or_default();
         if state.open {
             info!(exchange, "Circuit breaker closed after successful recovery");
             state.open = false;
@@ -166,13 +150,13 @@ impl ServerTimeWarmer {
         }
 
         // Update metrics
-        let metrics = self
-            .metrics
-            .entry(exchange.to_string())
-            .or_insert_with(|| ConnectionMetrics {
-                exchange: exchange.to_string(),
-                ..Default::default()
-            });
+        let metrics =
+            self.metrics
+                .entry(exchange.to_string())
+                .or_insert_with(|| ConnectionMetrics {
+                    exchange: exchange.to_string(),
+                    ..Default::default()
+                });
 
         metrics.total_queries += 1;
         metrics.successful_queries += 1;
@@ -193,13 +177,13 @@ impl ServerTimeWarmer {
         let failure_threshold = self.circuit_breaker.failure_threshold;
 
         // Update metrics
-        let metrics = self
-            .metrics
-            .entry(exchange.to_string())
-            .or_insert_with(|| ConnectionMetrics {
-                exchange: exchange.to_string(),
-                ..Default::default()
-            });
+        let metrics =
+            self.metrics
+                .entry(exchange.to_string())
+                .or_insert_with(|| ConnectionMetrics {
+                    exchange: exchange.to_string(),
+                    ..Default::default()
+                });
 
         metrics.total_queries += 1;
         metrics.failed_queries += 1;
@@ -215,16 +199,9 @@ impl ServerTimeWarmer {
             // Release mutable borrow on metrics before borrowing breaker_states
             let _ = metrics;
 
-            let state = self
-                .breaker_states
-                .entry(exchange.to_string())
-                .or_default();
+            let state = self.breaker_states.entry(exchange.to_string()).or_default();
             if !state.open {
-                warn!(
-                    exchange,
-                    consecutive_failures,
-                    "Circuit breaker opened"
-                );
+                warn!(exchange, consecutive_failures, "Circuit breaker opened");
                 state.open = true;
                 state.opened_at = Some(Self::now_ms());
                 state.last_recovery_attempt = Some(Self::now_ms());
@@ -259,7 +236,7 @@ impl ServerTimeWarmer {
 
         // Latency component (0-20)
         let latency_score = if metrics.average_latency_ms > 0.0 {
-            (20.0 - metrics.average_latency_ms / 50.0).max(0.0).min(20.0)
+            (20.0 - metrics.average_latency_ms / 50.0).clamp(0.0, 20.0)
         } else {
             20.0
         };
@@ -280,11 +257,11 @@ impl ServerTimeWarmer {
 
         // Circuit breaker penalty
         let state = self.breaker_states.get(exchange);
-        if state.map_or(false, |s| s.open) {
+        if state.is_some_and(|s| s.open) {
             score *= 0.5;
         }
 
-        score.max(0.0).min(100.0)
+        score.clamp(0.0, 100.0)
     }
 
     /// Query server time for a specific exchange (respects circuit breaker).
@@ -376,10 +353,7 @@ impl ServerTimeWarmer {
     ///
     /// Note: Due to the mutable borrow on `self`, exchanges are warmed sequentially.
     /// For concurrent warming, use `warm_all_concurrent` which creates separate clients.
-    pub async fn warm_all(
-        &mut self,
-        exchanges: &[String],
-    ) -> HashMap<String, ServerTimeResponse> {
+    pub async fn warm_all(&mut self, exchanges: &[String]) -> HashMap<String, ServerTimeResponse> {
         let mut results = HashMap::new();
         for exchange in exchanges {
             let response = self.warm_exchange(exchange).await;
@@ -452,21 +426,18 @@ impl ServerTimeWarmer {
     /// Manually open the circuit breaker for an exchange (for testing).
     #[cfg(test)]
     fn force_open_circuit_breaker(&mut self, exchange: &str) {
-        let state = self
-            .breaker_states
-            .entry(exchange.to_string())
-            .or_default();
+        let state = self.breaker_states.entry(exchange.to_string()).or_default();
         state.open = true;
         state.opened_at = Some(Self::now_ms());
         state.last_recovery_attempt = Some(Self::now_ms());
 
-        let metrics = self
-            .metrics
-            .entry(exchange.to_string())
-            .or_insert_with(|| ConnectionMetrics {
-                exchange: exchange.to_string(),
-                ..Default::default()
-            });
+        let metrics =
+            self.metrics
+                .entry(exchange.to_string())
+                .or_insert_with(|| ConnectionMetrics {
+                    exchange: exchange.to_string(),
+                    ..Default::default()
+                });
         metrics.circuit_breaker_open = true;
     }
 
@@ -502,10 +473,11 @@ fn parse_server_time(body: &str) -> Option<i64> {
         }) {
             return Some(t);
         }
-        if let Some(t) = result
-            .get("timeSecond")
-            .and_then(|v| v.as_str().and_then(|s| s.parse::<i64>().ok()).map(|s| s * 1000))
-        {
+        if let Some(t) = result.get("timeSecond").and_then(|v| {
+            v.as_str()
+                .and_then(|s| s.parse::<i64>().ok())
+                .map(|s| s * 1000)
+        }) {
             return Some(t);
         }
     }
@@ -602,7 +574,10 @@ mod tests {
         warmer.simulate_failure("test_exchange", "timeout");
 
         let state = warmer.breaker_states.get("test_exchange").unwrap();
-        assert!(state.open, "Circuit breaker should be open after 3 failures");
+        assert!(
+            state.open,
+            "Circuit breaker should be open after 3 failures"
+        );
         assert!(state.opened_at.is_some());
 
         let metrics = warmer.metrics.get("test_exchange").unwrap();
@@ -712,7 +687,11 @@ mod tests {
             warmer.simulate_success("penalized_exchange", 50.0);
         }
 
-        let score_before = warmer.metrics.get("penalized_exchange").unwrap().health_score;
+        let score_before = warmer
+            .metrics
+            .get("penalized_exchange")
+            .unwrap()
+            .health_score;
 
         // Force open circuit breaker
         warmer.force_open_circuit_breaker("penalized_exchange");
