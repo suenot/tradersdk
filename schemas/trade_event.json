@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TradeEvent",
+  "description": "Trade event from WebSocket.",
+  "type": "object",
+  "required": [
+    "price",
+    "quantity",
+    "side",
+    "symbol",
+    "timestamp"
+  ],
+  "properties": {
+    "price": {
+      "description": "Trade price.",
+      "type": "number",
+      "format": "double"
+    },
+    "quantity": {
+      "description": "Trade quantity.",
+      "type": "number",
+      "format": "double"
+    },
+    "side": {
+      "description": "Trade side (buy/sell).",
+      "type": "string"
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Trade timestamp (ms).",
+      "type": "integer",
+      "format": "int64"
+    },
+    "trade_id": {
+      "description": "Trade ID.",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderStatus",
+  "description": "Order status.",
+  "oneOf": [
+    {
+      "description": "Order is created but not yet filled.",
+      "type": "string",
+      "enum": [
+        "New"
+      ]
+    },
+    {
+      "description": "Order is partially filled.",
+      "type": "string",
+      "enum": [
+        "PartiallyFilled"
+      ]
+    },
+    {
+      "description": "Order is fully filled.",
+      "type": "string",
+      "enum": [
+        "Filled"
+      ]
+    },
+    {
+      "description": "Order was cancelled.",
+      "type": "string",
+      "enum": [
+        "Cancelled"
+      ]
+    },
+    {
+      "description": "Order was rejected.",
+      "type": "string",
+      "enum": [
+        "Rejected"
+      ]
+    },
+    {
+      "description": "Order expired.",
+      "type": "string",
+      "enum": [
+        "Expired"
+      ]
+    }
+  ]
+}

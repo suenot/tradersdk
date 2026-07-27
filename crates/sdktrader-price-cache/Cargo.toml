@@ -1,0 +1,16 @@
+[package]
+name = "sdktrader-price-cache"
+version = "0.1.0"
+edition = "2021"
+description = "Price cache with CoinGecko integration, rate limiting, and file persistence"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+tokio = { version = "1.35", features = ["time", "sync", "fs"] }
+tracing = "0.1"
+anyhow = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1.35", features = ["macros", "rt-multi-thread", "test-util"] }

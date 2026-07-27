@@ -1,0 +1,14 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "sdktrader-rs"
+version = "0.1.0"
+description = "High-performance Rust-backed exchange trading SDK for Python"
+requires-python = ">=3.9"
+keywords = ["trading", "cryptocurrency", "hft", "rust", "exchange"]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "sdktrader_rs"

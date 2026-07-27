@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MarginMode",
+  "description": "Margin mode.",
+  "type": "string",
+  "enum": [
+    "cross",
+    "isolated"
+  ]
+}

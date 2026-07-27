@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderTestResult",
+  "description": "Order test result (dry run without real execution).",
+  "type": "object",
+  "required": [
+    "estimated_cost",
+    "order_type",
+    "quantity",
+    "side",
+    "symbol",
+    "valid"
+  ],
+  "properties": {
+    "error": {
+      "description": "Error message if invalid.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "estimated_cost": {
+      "description": "Estimated cost.",
+      "type": "number",
+      "format": "double"
+    },
+    "order_type": {
+      "description": "Order type.",
+      "type": "string"
+    },
+    "price": {
+      "description": "Price (for limit orders).",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "quantity": {
+      "description": "Quantity.",
+      "type": "number",
+      "format": "double"
+    },
+    "side": {
+      "description": "Order side.",
+      "type": "string"
+    },
+    "symbol": {
+      "description": "Symbol.",
+      "type": "string"
+    },
+    "valid": {
+      "description": "Whether order parameters are valid.",
+      "type": "boolean"
+    }
+  }
+}

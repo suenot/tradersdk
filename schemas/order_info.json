@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderInfo",
+  "description": "Detailed order information.",
+  "type": "object",
+  "required": [
+    "filled_quantity",
+    "order_id",
+    "order_type",
+    "price",
+    "quantity",
+    "reduce_only",
+    "remaining_quantity",
+    "side",
+    "status",
+    "symbol",
+    "time_in_force",
+    "timestamp"
+  ],
+  "properties": {
+    "avg_price": {
+      "description": "Average fill price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "client_order_id": {
+      "description": "Client order ID.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "filled_quantity": {
+      "description": "Filled quantity.",
+      "type": "number",
+      "format": "double"
+    },
+    "order_id": {
+      "description": "Order ID.",
+      "type": "string"
+    },
+    "order_type": {
+      "description": "Order type.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/OrderType"
+        }
+      ]
+    },
+    "price": {
+      "description": "Order price.",
+      "type": "number",
+      "format": "double"
+    },
+    "quantity": {
+      "description": "Order quantity.",
+      "type": "number",
+      "format": "double"
+    },
+    "reduce_only": {
+      "description": "Whether reduce-only.",
+      "type": "boolean"
+    },
+    "remaining_quantity": {
+      "description": "Remaining quantity.",
+      "type": "number",
+      "format": "double"
+    },
+    "side": {
+      "description": "Order side.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/OrderSide"
+        }
+      ]
+    },
+    "status": {
+      "description": "Order status.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/OrderStatus"
+        }
+      ]
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    },
+    "time_in_force": {
+      "description": "Time in force.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/TimeInForce"
+        }
+      ]
+    },
+    "timestamp": {
+      "description": "Order creation timestamp.",
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "definitions": {
+    "OrderSide": {
+      "description": "Order side (buy/sell).",
+      "type": "string",
+      "enum": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    "OrderStatus": {
+      "description": "Order status.",
+      "oneOf": [
+        {
+          "description": "Order is created but not yet filled.",
+          "type": "string",
+          "enum": [
+            "New"
+          ]
+        },
+        {
+          "description": "Order is partially filled.",
+          "type": "string",
+          "enum": [
+            "PartiallyFilled"
+          ]
+        },
+        {
+          "description": "Order is fully filled.",
+          "type": "string",
+          "enum": [
+            "Filled"
+          ]
+        },
+        {
+          "description": "Order was cancelled.",
+          "type": "string",
+          "enum": [
+            "Cancelled"
+          ]
+        },
+        {
+          "description": "Order was rejected.",
+          "type": "string",
+          "enum": [
+            "Rejected"
+          ]
+        },
+        {
+          "description": "Order expired.",
+          "type": "string",
+          "enum": [
+            "Expired"
+          ]
+        }
+      ]
+    },
+    "OrderType": {
+      "description": "Order type.",
+      "type": "string",
+      "enum": [
+        "Market",
+        "Limit",
+        "StopMarket",
+        "StopLimit",
+        "TakeProfitMarket",
+        "TakeProfitLimit"
+      ]
+    },
+    "TimeInForce": {
+      "description": "Time in force for orders.",
+      "oneOf": [
+        {
+          "description": "Good Till Cancelled.",
+          "type": "string",
+          "enum": [
+            "GTC"
+          ]
+        },
+        {
+          "description": "Immediate Or Cancel.",
+          "type": "string",
+          "enum": [
+            "IOC"
+          ]
+        },
+        {
+          "description": "Fill Or Kill.",
+          "type": "string",
+          "enum": [
+            "FOK"
+          ]
+        },
+        {
+          "description": "Post Only (maker only).",
+          "type": "string",
+          "enum": [
+            "PostOnly"
+          ]
+        }
+      ]
+    }
+  }
+}

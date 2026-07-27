@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WsTestResult",
+  "description": "WebSocket connection test result.",
+  "type": "object",
+  "required": [
+    "connected",
+    "latency_ms",
+    "messages_received",
+    "subscription_type"
+  ],
+  "properties": {
+    "connected": {
+      "description": "Whether connection was successful.",
+      "type": "boolean"
+    },
+    "data_sample": {
+      "description": "Sample of received data."
+    },
+    "latency_ms": {
+      "description": "Connection latency in ms.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "messages_received": {
+      "description": "Number of messages received during test.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "subscription_type": {
+      "description": "Type of subscription tested.",
+      "type": "string"
+    }
+  }
+}

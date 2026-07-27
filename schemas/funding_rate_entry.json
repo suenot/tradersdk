@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FundingRateEntry",
+  "description": "Funding rate history entry.",
+  "type": "object",
+  "required": [
+    "funding_rate",
+    "funding_time",
+    "symbol"
+  ],
+  "properties": {
+    "funding_rate": {
+      "description": "Funding rate.",
+      "type": "number",
+      "format": "double"
+    },
+    "funding_time": {
+      "description": "Funding time (timestamp ms).",
+      "type": "integer",
+      "format": "int64"
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    }
+  }
+}

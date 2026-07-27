@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OpenInterestEntry",
+  "description": "Open Interest history entry.",
+  "type": "object",
+  "required": [
+    "open_interest",
+    "open_interest_value",
+    "symbol",
+    "timestamp"
+  ],
+  "properties": {
+    "open_interest": {
+      "description": "Open interest amount.",
+      "type": "number",
+      "format": "double"
+    },
+    "open_interest_value": {
+      "description": "Open interest value in USD.",
+      "type": "number",
+      "format": "double"
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Timestamp.",
+      "type": "integer",
+      "format": "int64"
+    }
+  }
+}

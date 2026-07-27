@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AccountBalance",
+  "description": "Account balance summary.",
+  "type": "object",
+  "required": [
+    "available_balance",
+    "balances",
+    "currency",
+    "total_balance"
+  ],
+  "properties": {
+    "available_balance": {
+      "description": "Available balance for trading.",
+      "type": "number",
+      "format": "double"
+    },
+    "balances": {
+      "description": "Individual asset balances.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Balance"
+      }
+    },
+    "currency": {
+      "description": "Currency (e.g., \"USDT\").",
+      "type": "string"
+    },
+    "margin_balance": {
+      "description": "Margin balance (for futures).",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "realized_pnl": {
+      "description": "Realized PnL.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "total_balance": {
+      "description": "Total balance/equity.",
+      "type": "number",
+      "format": "double"
+    },
+    "unrealized_pnl": {
+      "description": "Unrealized PnL.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "used_margin": {
+      "description": "Used margin.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    }
+  },
+  "definitions": {
+    "Balance": {
+      "description": "Individual asset balance.",
+      "type": "object",
+      "required": [
+        "asset",
+        "free",
+        "locked"
+      ],
+      "properties": {
+        "asset": {
+          "description": "Asset name (e.g., \"USDT\", \"BTC\").",
+          "type": "string"
+        },
+        "free": {
+          "description": "Free/available balance.",
+          "type": "number",
+          "format": "double"
+        },
+        "locked": {
+          "description": "Locked balance (in orders).",
+          "type": "number",
+          "format": "double"
+        }
+      }
+    }
+  }
+}

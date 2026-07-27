@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderbookLevel",
+  "description": "Orderbook entry (price, quantity).",
+  "type": "object",
+  "required": [
+    "price",
+    "quantity"
+  ],
+  "properties": {
+    "price": {
+      "description": "Price level.",
+      "type": "number",
+      "format": "double"
+    },
+    "quantity": {
+      "description": "Quantity at this level.",
+      "type": "number",
+      "format": "double"
+    }
+  }
+}

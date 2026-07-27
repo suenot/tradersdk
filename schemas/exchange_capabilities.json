@@ -1,0 +1,495 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExchangeCapabilities",
+  "description": "What an exchange implementation can and cannot do.\n\nEach field represents a specific capability. Consumers should check capabilities before calling optional methods.\n\n# Example ```rust use sdktrader_core::models::capabilities::{ExchangeCapabilities, CapabilityStatus};\n\nlet caps = ExchangeCapabilities::default(); assert_eq!(caps.create_market_order, CapabilityStatus::Unknown); ```",
+  "type": "object",
+  "required": [
+    "cancel_all_orders",
+    "cancel_order",
+    "close_position",
+    "create_limit_order",
+    "create_market_order",
+    "create_orders_batch",
+    "create_post_only_order",
+    "create_reduce_only_order",
+    "create_stop_limit_order",
+    "create_stop_market_order",
+    "create_take_profit_order",
+    "create_trailing_stop_order",
+    "edit_order",
+    "execute_fast_entry",
+    "format_symbol",
+    "futures",
+    "get_balance",
+    "get_current_price",
+    "get_deposit_address",
+    "get_funding_rate",
+    "get_funding_rate_history",
+    "get_ohlcv",
+    "get_open_interest",
+    "get_open_interest_history",
+    "get_open_orders",
+    "get_order_history",
+    "get_order_status",
+    "get_order_trades",
+    "get_orderbook",
+    "get_position",
+    "get_positions",
+    "get_server_time",
+    "get_ticker",
+    "get_trades",
+    "margin",
+    "option",
+    "set_leverage",
+    "set_margin_mode",
+    "set_position_mode",
+    "spot",
+    "swap",
+    "test_connection",
+    "transfer",
+    "withdraw",
+    "ws_balance",
+    "ws_orderbook",
+    "ws_orders",
+    "ws_positions",
+    "ws_ticker",
+    "ws_trades"
+  ],
+  "properties": {
+    "cancel_all_orders": {
+      "description": "Cancel all orders for a symbol.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "cancel_order": {
+      "description": "Cancel a single order.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "close_position": {
+      "description": "Close a position.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_limit_order": {
+      "description": "Create limit orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_market_order": {
+      "description": "Create market orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_orders_batch": {
+      "description": "Batch order creation (multiple orders at once).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_post_only_order": {
+      "description": "Create post-only (maker) orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_reduce_only_order": {
+      "description": "Create reduce-only orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_stop_limit_order": {
+      "description": "Create stop-limit orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_stop_market_order": {
+      "description": "Create stop-market orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_take_profit_order": {
+      "description": "Create take-profit orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "create_trailing_stop_order": {
+      "description": "Create trailing stop orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "edit_order": {
+      "description": "Edit/amend an existing order.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "execute_fast_entry": {
+      "description": "Execute listing trade (the main listing bot operation).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "format_symbol": {
+      "description": "Symbol formatting.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "futures": {
+      "description": "Dated futures trading support.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_balance": {
+      "description": "Get account balance.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_current_price": {
+      "description": "Get current price for a symbol.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_deposit_address": {
+      "description": "Deposit address generation.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_funding_rate": {
+      "description": "Get funding rate (current).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_funding_rate_history": {
+      "description": "Get funding rate history.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_ohlcv": {
+      "description": "Get OHLCV candles.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_open_interest": {
+      "description": "Get open interest.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_open_interest_history": {
+      "description": "Get open interest history.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_open_orders": {
+      "description": "Get all open orders.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_order_history": {
+      "description": "Get order history.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_order_status": {
+      "description": "Get status of a specific order.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_order_trades": {
+      "description": "Get trades for a specific order.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_orderbook": {
+      "description": "Get orderbook snapshot.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_position": {
+      "description": "Get a single position.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_positions": {
+      "description": "Get all positions.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_server_time": {
+      "description": "Get server time.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_ticker": {
+      "description": "Get full ticker info.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "get_trades": {
+      "description": "Get recent trades.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "margin": {
+      "description": "Margin trading support.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "option": {
+      "description": "Options trading support.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "set_leverage": {
+      "description": "Set leverage for a symbol.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "set_margin_mode": {
+      "description": "Set margin mode (cross/isolated).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "set_position_mode": {
+      "description": "Set position mode (hedge/one-way).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "spot": {
+      "description": "Spot trading support.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "swap": {
+      "description": "Perpetual swap / futures trading support.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "test_connection": {
+      "description": "Test connection.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "transfer": {
+      "description": "Internal transfers between accounts.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "withdraw": {
+      "description": "Withdraw funds.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "ws_balance": {
+      "description": "WebSocket private balance updates.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "ws_orderbook": {
+      "description": "WebSocket orderbook subscription.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "ws_orders": {
+      "description": "WebSocket private order updates.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "ws_positions": {
+      "description": "WebSocket private position updates.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "ws_ticker": {
+      "description": "WebSocket ticker subscription.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    },
+    "ws_trades": {
+      "description": "WebSocket trades subscription.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CapabilityStatus"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "CapabilityStatus": {
+      "description": "Whether a specific capability is supported by an exchange.",
+      "oneOf": [
+        {
+          "description": "Fully supported natively.",
+          "type": "string",
+          "enum": [
+            "supported"
+          ]
+        },
+        {
+          "description": "Supported via emulation or workaround.",
+          "type": "string",
+          "enum": [
+            "emulated"
+          ]
+        },
+        {
+          "description": "Explicitly not supported.",
+          "type": "string",
+          "enum": [
+            "not_supported"
+          ]
+        },
+        {
+          "description": "Not yet determined or not implemented.",
+          "type": "string",
+          "enum": [
+            "unknown"
+          ]
+        }
+      ]
+    }
+  }
+}

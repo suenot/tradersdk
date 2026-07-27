@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Balance",
+  "description": "Individual asset balance.",
+  "type": "object",
+  "required": [
+    "asset",
+    "free",
+    "locked"
+  ],
+  "properties": {
+    "asset": {
+      "description": "Asset name (e.g., \"USDT\", \"BTC\").",
+      "type": "string"
+    },
+    "free": {
+      "description": "Free/available balance.",
+      "type": "number",
+      "format": "double"
+    },
+    "locked": {
+      "description": "Locked balance (in orders).",
+      "type": "number",
+      "format": "double"
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderResult",
+  "description": "Result of an order execution.",
+  "type": "object",
+  "required": [
+    "order_type",
+    "side",
+    "success",
+    "symbol"
+  ],
+  "properties": {
+    "entry_price": {
+      "description": "Entry/average price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "error": {
+      "description": "Error message if failed.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "order_id": {
+      "description": "Order ID assigned by exchange.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "order_type": {
+      "description": "Order type.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/OrderType"
+        }
+      ]
+    },
+    "position_size": {
+      "description": "Position size after order.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "position_usdt": {
+      "description": "Position value in USDT.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "quantity": {
+      "description": "Executed quantity.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "raw_response": {
+      "description": "Raw exchange response.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "side": {
+      "description": "Order side.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/OrderSide"
+        }
+      ]
+    },
+    "success": {
+      "description": "Whether the order was successful.",
+      "type": "boolean"
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "OrderSide": {
+      "description": "Order side (buy/sell).",
+      "type": "string",
+      "enum": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    "OrderType": {
+      "description": "Order type.",
+      "type": "string",
+      "enum": [
+        "Market",
+        "Limit",
+        "StopMarket",
+        "StopLimit",
+        "TakeProfitMarket",
+        "TakeProfitLimit"
+      ]
+    }
+  }
+}

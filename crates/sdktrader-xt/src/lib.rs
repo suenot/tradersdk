@@ -1,0 +1,6 @@
+//! XT exchange adapter.
+
+mod client;
+pub mod models;
+
+pub use client::XtTrader;

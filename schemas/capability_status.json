@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CapabilityStatus",
+  "description": "Whether a specific capability is supported by an exchange.",
+  "oneOf": [
+    {
+      "description": "Fully supported natively.",
+      "type": "string",
+      "enum": [
+        "supported"
+      ]
+    },
+    {
+      "description": "Supported via emulation or workaround.",
+      "type": "string",
+      "enum": [
+        "emulated"
+      ]
+    },
+    {
+      "description": "Explicitly not supported.",
+      "type": "string",
+      "enum": [
+        "not_supported"
+      ]
+    },
+    {
+      "description": "Not yet determined or not implemented.",
+      "type": "string",
+      "enum": [
+        "unknown"
+      ]
+    }
+  ]
+}

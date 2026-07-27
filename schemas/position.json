@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Position",
+  "description": "Trading position.",
+  "type": "object",
+  "required": [
+    "amount",
+    "entry_price",
+    "entry_time",
+    "exchange",
+    "is_open",
+    "leverage",
+    "margin_mode",
+    "realized_pnl",
+    "side",
+    "symbol",
+    "unrealized_pnl"
+  ],
+  "properties": {
+    "amount": {
+      "description": "Position amount.",
+      "type": "number",
+      "format": "double"
+    },
+    "entry_price": {
+      "description": "Entry price.",
+      "type": "number",
+      "format": "double"
+    },
+    "entry_time": {
+      "description": "Position entry timestamp.",
+      "type": "integer",
+      "format": "int64"
+    },
+    "exchange": {
+      "description": "Exchange name.",
+      "type": "string"
+    },
+    "is_open": {
+      "description": "Whether position is open.",
+      "type": "boolean"
+    },
+    "leverage": {
+      "description": "Leverage.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "liquidation_price": {
+      "description": "Liquidation price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "margin": {
+      "description": "Position margin.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "margin_mode": {
+      "description": "Margin mode.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/MarginMode"
+        }
+      ]
+    },
+    "mark_price": {
+      "description": "Current mark price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "realized_pnl": {
+      "description": "Realized PnL.",
+      "type": "number",
+      "format": "double"
+    },
+    "side": {
+      "description": "Position side.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/PositionSide"
+        }
+      ]
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    },
+    "unrealized_pnl": {
+      "description": "Unrealized PnL.",
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "definitions": {
+    "MarginMode": {
+      "description": "Margin mode.",
+      "type": "string",
+      "enum": [
+        "cross",
+        "isolated"
+      ]
+    },
+    "PositionSide": {
+      "description": "Position side.",
+      "type": "string",
+      "enum": [
+        "long",
+        "short"
+      ]
+    }
+  }
+}

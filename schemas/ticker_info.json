@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TickerInfo",
+  "description": "Ticker data with Open Interest and Funding Rate.",
+  "type": "object",
+  "required": [
+    "last_price",
+    "symbol",
+    "timestamp"
+  ],
+  "properties": {
+    "ask_price": {
+      "description": "Best ask price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "bid_price": {
+      "description": "Best bid price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "change_24h": {
+      "description": "24h price change percentage.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "funding_rate": {
+      "description": "Current funding rate (for perpetual futures).",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "high_24h": {
+      "description": "24h high price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "index_price": {
+      "description": "Index price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "last_price": {
+      "description": "Last traded price.",
+      "type": "number",
+      "format": "double"
+    },
+    "low_24h": {
+      "description": "24h low price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "mark_price": {
+      "description": "Mark price.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "next_funding_time": {
+      "description": "Next funding time (Unix timestamp ms).",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64"
+    },
+    "open_interest": {
+      "description": "Open Interest in contracts/coins.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "open_interest_value": {
+      "description": "Open Interest value in USD.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Data timestamp.",
+      "type": "integer",
+      "format": "int64"
+    },
+    "turnover_24h": {
+      "description": "24h turnover in quote currency.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "volume_24h": {
+      "description": "24h volume in base currency.",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    }
+  }
+}

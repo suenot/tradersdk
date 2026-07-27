@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Orderbook",
+  "description": "Orderbook snapshot.",
+  "type": "object",
+  "required": [
+    "asks",
+    "bids",
+    "symbol",
+    "timestamp"
+  ],
+  "properties": {
+    "asks": {
+      "description": "Ask levels (sorted by price ascending).",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/OrderbookLevel"
+      }
+    },
+    "bids": {
+      "description": "Bid levels (sorted by price descending).",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/OrderbookLevel"
+      }
+    },
+    "symbol": {
+      "description": "Trading symbol.",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Snapshot timestamp.",
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "definitions": {
+    "OrderbookLevel": {
+      "description": "Orderbook entry (price, quantity).",
+      "type": "object",
+      "required": [
+        "price",
+        "quantity"
+      ],
+      "properties": {
+        "price": {
+          "description": "Price level.",
+          "type": "number",
+          "format": "double"
+        },
+        "quantity": {
+          "description": "Quantity at this level.",
+          "type": "number",
+          "format": "double"
+        }
+      }
+    }
+  }
+}

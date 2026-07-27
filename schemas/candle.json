@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Candle",
+  "description": "OHLCV candlestick data.",
+  "type": "object",
+  "required": [
+    "close",
+    "high",
+    "low",
+    "open",
+    "timestamp",
+    "volume"
+  ],
+  "properties": {
+    "close": {
+      "description": "Close price.",
+      "type": "number",
+      "format": "double"
+    },
+    "high": {
+      "description": "High price.",
+      "type": "number",
+      "format": "double"
+    },
+    "low": {
+      "description": "Low price.",
+      "type": "number",
+      "format": "double"
+    },
+    "open": {
+      "description": "Open price.",
+      "type": "number",
+      "format": "double"
+    },
+    "timestamp": {
+      "description": "Candle open timestamp (ms).",
+      "type": "integer",
+      "format": "int64"
+    },
+    "turnover": {
+      "description": "Turnover in quote currency (optional).",
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "volume": {
+      "description": "Volume in base currency.",
+      "type": "number",
+      "format": "double"
+    }
+  }
+}
