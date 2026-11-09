@@ -3,13 +3,14 @@ members = ["crates/*"]
 resolver = "2"
 
 [package]
-name = "sdktrader"
+name = "tradersdk"
 version = "0.1.0"
 edition = "2021"
 authors = ["suenot"]
 description = "High-performance Rust SDK for cryptocurrency trading across multiple exchanges"
 license = "MIT"
-repository = "https://github.com/suenot/sdktrader"
+repository = "https://github.com/suenot/tradersdk"
+homepage = "https://tradersdk.com"
 keywords = ["trading", "cryptocurrency", "sdk", "exchange", "api"]
 categories = ["finance", "api-bindings"]
 readme = "README.md"
@@ -20,62 +21,62 @@ default = ["full"]
 # All available exchanges
 full = ["bybit", "bingx", "binance", "gate", "okx", "bitget", "mexc", "hyperliquid", "kraken", "kucoin", "deribit", "phemex", "xt", "htx", "bitfinex", "bitmart", "coinex", "lbank", "weex", "ourbit"]
 
-# Individual exchanges — propagate to sdktrader-providers features
-bybit = ["sdktrader-providers/bybit"]
-bingx = ["sdktrader-providers/bingx"]
-binance = ["sdktrader-providers/binance"]
-gate = ["sdktrader-providers/gate"]
-okx = ["sdktrader-providers/okx"]
-bitget = ["sdktrader-providers/bitget"]
-mexc = ["sdktrader-providers/mexc"]
-hyperliquid = ["sdktrader-providers/hyperliquid"]
-kraken = ["sdktrader-providers/kraken"]
-kucoin = ["sdktrader-providers/kucoin"]
-deribit = ["sdktrader-providers/deribit"]
-phemex = ["sdktrader-providers/phemex"]
-xt = ["sdktrader-providers/xt"]
-htx = ["sdktrader-providers/htx"]
-bitfinex = ["sdktrader-providers/bitfinex"]
-bitmart = ["sdktrader-providers/bitmart"]
-coinex = ["sdktrader-providers/coinex"]
-lbank = ["sdktrader-providers/lbank"]
-weex = ["sdktrader-providers/weex"]
-ourbit = ["sdktrader-providers/ourbit"]
+# Individual exchanges — propagate to tradersdk-providers features
+bybit = ["tradersdk-providers/bybit"]
+bingx = ["tradersdk-providers/bingx"]
+binance = ["tradersdk-providers/binance"]
+gate = ["tradersdk-providers/gate"]
+okx = ["tradersdk-providers/okx"]
+bitget = ["tradersdk-providers/bitget"]
+mexc = ["tradersdk-providers/mexc"]
+hyperliquid = ["tradersdk-providers/hyperliquid"]
+kraken = ["tradersdk-providers/kraken"]
+kucoin = ["tradersdk-providers/kucoin"]
+deribit = ["tradersdk-providers/deribit"]
+phemex = ["tradersdk-providers/phemex"]
+xt = ["tradersdk-providers/xt"]
+htx = ["tradersdk-providers/htx"]
+bitfinex = ["tradersdk-providers/bitfinex"]
+bitmart = ["tradersdk-providers/bitmart"]
+coinex = ["tradersdk-providers/coinex"]
+lbank = ["tradersdk-providers/lbank"]
+weex = ["tradersdk-providers/weex"]
+ourbit = ["tradersdk-providers/ourbit"]
 
 # Optional features
-storage = ["dep:sdktrader-storage"]
-notifications = ["dep:sdktrader-notifications"]
-utils = ["dep:sdktrader-utils"]
-trading = ["dep:sdktrader-trading"]
-signal = ["dep:sdktrader-signal"]
-monitoring = ["dep:sdktrader-monitoring"]
-proxy = ["dep:sdktrader-proxy"]
-warming = ["dep:sdktrader-warming"]
-price-cache = ["dep:sdktrader-price-cache"]
-leverage-cache = ["dep:sdktrader-leverage-cache"]
+storage = ["dep:tradersdk-storage"]
+notifications = ["dep:tradersdk-notifications"]
+utils = ["dep:tradersdk-utils"]
+trading = ["dep:tradersdk-trading"]
+signal = ["dep:tradersdk-signal"]
+monitoring = ["dep:tradersdk-monitoring"]
+proxy = ["dep:tradersdk-proxy"]
+warming = ["dep:tradersdk-warming"]
+price-cache = ["dep:tradersdk-price-cache"]
+leverage-cache = ["dep:tradersdk-leverage-cache"]
 
 # Testing features
 integration = []
 live = ["integration"]
 
 # HTTP API server
-api = ["dep:sdktrader-api", "dep:tracing-subscriber"]
+api = ["dep:tradersdk-api", "dep:tracing-subscriber"]
 
 [dependencies]
 # Workspace crates
-sdktrader-core = { path = "crates/sdktrader-core" }
-sdktrader-providers = { path = "crates/sdktrader-providers", default-features = false }
-sdktrader-utils = { path = "crates/sdktrader-utils", optional = true }
-sdktrader-storage = { path = "crates/sdktrader-storage", optional = true }
-sdktrader-notifications = { path = "crates/sdktrader-notifications", optional = true }
-sdktrader-api = { path = "crates/sdktrader-api", optional = true }
-sdktrader-trading = { path = "crates/sdktrader-trading", optional = true }
-sdktrader-signal = { path = "crates/sdktrader-signal", optional = true }
-sdktrader-monitoring = { path = "crates/sdktrader-monitoring", optional = true }
-sdktrader-proxy = { path = "crates/sdktrader-proxy", optional = true }
-sdktrader-warming = { path = "crates/sdktrader-warming", optional = true }
-sdktrader-price-cache = { path = "crates/sdktrader-price-cache", optional = true }
-sdktrader-leverage-cache = { path = "crates/sdktrader-leverage-cache", optional = true }
+tradersdk-core = { path = "crates/tradersdk-core" }
+tradersdk-providers = { path = "crates/tradersdk-providers", default-features = false }
+tradersdk-utils = { path = "crates/tradersdk-utils", optional = true }
+tradersdk-storage = { path = "crates/tradersdk-storage", optional = true }
+tradersdk-notifications = { path = "crates/tradersdk-notifications", optional = true }
+tradersdk-api = { path = "crates/tradersdk-api", optional = true }
+tradersdk-trading = { path = "crates/tradersdk-trading", optional = true }
+tradersdk-signal = { path = "crates/tradersdk-signal", optional = true }
+tradersdk-monitoring = { path = "crates/tradersdk-monitoring", optional = true }
+tradersdk-proxy = { path = "crates/tradersdk-proxy", optional = true }
+tradersdk-warming = { path = "crates/tradersdk-warming", optional = true }
+tradersdk-price-cache = { path = "crates/tradersdk-price-cache", optional = true }
+tradersdk-leverage-cache = { path = "crates/tradersdk-leverage-cache", optional = true }
 
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }

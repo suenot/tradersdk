@@ -1,0 +1,17 @@
+[package]
+name = "tradersdk-storage"
+version = "0.1.0"
+edition = "2021"
+description = "Storage and caching utilities for tradersdk — memory cache, file persistence, PnL tracking"
+
+[dependencies]
+tokio = { version = "1.35", features = ["fs", "sync", "time"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+rust_decimal = { version = "1.33", features = ["serde", "serde-with-str"] }
+
+[dev-dependencies]
+tempfile = "3.8"
+tokio = { version = "1.35", features = ["full", "test-util"] }

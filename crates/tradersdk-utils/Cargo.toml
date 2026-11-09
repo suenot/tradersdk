@@ -1,0 +1,14 @@
+[package]
+name = "tradersdk-utils"
+version = "0.1.0"
+edition = "2021"
+description = "Utility functions for tradersdk — retry, time helpers"
+
+[dependencies]
+tradersdk-core = { path = "../tradersdk-core" }
+tokio = { version = "1.35", features = ["time"] }
+tracing = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio = { version = "1.35", features = ["rt", "macros"] }

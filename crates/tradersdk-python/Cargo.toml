@@ -1,0 +1,25 @@
+[package]
+name = "tradersdk-python"
+version = "0.1.0"
+edition = "2021"
+description = "Python bindings for tradersdk via PyO3"
+
+[lib]
+name = "tradersdk"
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 bindings
+pyo3 = { version = "0.29", features = ["extension-module"] }
+pyo3-async-runtimes = { version = "0.29", features = ["tokio-runtime"] }
+
+# Workspace crates
+tradersdk-core = { path = "../tradersdk-core" }
+tradersdk-providers = { path = "../tradersdk-providers", features = ["full"] }
+
+# Runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization for Python dict conversion
+serde = "1.0"
+pythonize = "0.29"

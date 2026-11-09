@@ -1,9 +1,9 @@
-//! SDKTrader - High-performance Rust SDK for cryptocurrency trading.
+//! TraderSDK - High-performance Rust SDK for cryptocurrency trading.
 //!
 //! This library provides a unified interface for trading across multiple
 //! cryptocurrency exchanges with support for:
 //!
-//! - Modular exchange crates (20 exchanges via sdktrader-providers)
+//! - Modular exchange crates (20 exchanges via tradersdk-providers)
 //! - REST and WebSocket APIs
 //! - Market and limit orders
 //! - Position management
@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! use sdktrader::prelude::*;
+//! use tradersdk::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -36,22 +36,22 @@ pub mod exchanges;
 pub mod models;
 
 #[cfg(feature = "utils")]
-pub use sdktrader_utils as utils;
+pub use tradersdk_utils as utils;
 
 #[cfg(feature = "storage")]
-pub use sdktrader_storage as storage;
+pub use tradersdk_storage as storage;
 
 #[cfg(feature = "notifications")]
-pub use sdktrader_notifications as notifications;
+pub use tradersdk_notifications as notifications;
 
 #[cfg(feature = "api")]
-pub use sdktrader_api as api;
+pub use tradersdk_api as api;
 
 /// Prelude module for convenient imports.
 pub mod prelude {
     pub use crate::exchanges::{create_trader, ExchangeCredentials, ExchangeError, ExchangeTrader};
     pub use crate::models::*;
-    pub use sdktrader_core::utils::timestamp_ms;
+    pub use tradersdk_core::utils::timestamp_ms;
 }
 
 // Re-export main types at crate root

@@ -1,9 +1,9 @@
-# SDKTrader
+# TraderSDK
 
 Unified Rust SDK for cryptocurrency trading. One trait, 20 exchanges, spot and perpetuals.
 
 ```rust
-use sdktrader::prelude::*;
+use tradersdk::prelude::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,13 +31,13 @@ Not published to crates.io yet — depend on the repository directly:
 
 ```toml
 [dependencies]
-sdktrader = { git = "https://github.com/suenot/sdktrader" }
+tradersdk = { git = "https://github.com/suenot/tradersdk" }
 ```
 
 Every exchange is behind a feature flag. The default `full` feature pulls all 20; compile only what you use:
 
 ```toml
-sdktrader = { git = "https://github.com/suenot/sdktrader", default-features = false, features = ["bybit", "binance"] }
+tradersdk = { git = "https://github.com/suenot/tradersdk", default-features = false, features = ["bybit", "binance"] }
 ```
 
 ## Supported exchanges
@@ -106,34 +106,34 @@ three separate orders.
 
 ## Workspace
 
-The SDK is a workspace of small crates. Depend on the `sdktrader` facade for everything,
+The SDK is a workspace of small crates. Depend on the `tradersdk` facade for everything,
 or pick individual crates to keep your build lean.
 
 | Crate | Purpose |
 |---|---|
-| `sdktrader-core` | The `ExchangeTrader` trait, shared models, capability reporting |
-| `sdktrader-providers` | Exchange registry and the `create_trader` factory |
-| `sdktrader-<exchange>` | One crate per exchange adapter (20 of them) |
-| `sdktrader-trading` | PnL calculators, position sizing, symbol formatting, exit grids |
-| `sdktrader-proxy` | Proxy rotation with cooldown, request scheduling |
-| `sdktrader-storage` | In-memory cache with TTL, file persistence |
-| `sdktrader-price-cache` | Price cache with CoinGecko backfill and rate limiting |
-| `sdktrader-leverage-cache` | Per-symbol leverage limits, cached |
-| `sdktrader-monitoring` | Detects markets added to or removed from an exchange |
-| `sdktrader-notifications` | Telegram and webhook alerts |
-| `sdktrader-warming` | Connection pre-warming for latency-sensitive entries |
-| `sdktrader-signal` | Signal parsing and routing |
-| `sdktrader-api` | HTTP API for exercising adapters |
-| `sdktrader-python` | Python bindings via PyO3 |
-| `sdktrader-utils` | Retry, rate limiting, circuit breaking |
-| `sdktrader-schema-export` | JSON Schema export for the shared models |
+| `tradersdk-core` | The `ExchangeTrader` trait, shared models, capability reporting |
+| `tradersdk-providers` | Exchange registry and the `create_trader` factory |
+| `tradersdk-<exchange>` | One crate per exchange adapter (20 of them) |
+| `tradersdk-trading` | PnL calculators, position sizing, symbol formatting, exit grids |
+| `tradersdk-proxy` | Proxy rotation with cooldown, request scheduling |
+| `tradersdk-storage` | In-memory cache with TTL, file persistence |
+| `tradersdk-price-cache` | Price cache with CoinGecko backfill and rate limiting |
+| `tradersdk-leverage-cache` | Per-symbol leverage limits, cached |
+| `tradersdk-monitoring` | Detects markets added to or removed from an exchange |
+| `tradersdk-notifications` | Telegram and webhook alerts |
+| `tradersdk-warming` | Connection pre-warming for latency-sensitive entries |
+| `tradersdk-signal` | Signal parsing and routing |
+| `tradersdk-api` | HTTP API for exercising adapters |
+| `tradersdk-python` | Python bindings via PyO3 |
+| `tradersdk-utils` | Retry, rate limiting, circuit breaking |
+| `tradersdk-schema-export` | JSON Schema export for the shared models |
 
 ## Utilities
 
 Caching:
 
 ```rust
-use sdktrader::storage::*;
+use tradersdk::storage::*;
 
 let cache: MemoryCache<String, f64> = MemoryCache::new()
     .with_ttl(Duration::from_secs(60))
@@ -146,7 +146,7 @@ let price = cache.get(&"BTCUSDT".into());
 Alerts:
 
 ```rust
-use sdktrader::notifications::*;
+use tradersdk::notifications::*;
 
 let mut manager = NotificationManager::new();
 manager.add_telegram("alerts", "BOT_TOKEN", 123456789);
@@ -158,7 +158,7 @@ manager.notify_trade("BTCUSDT", "Buy", 50_000.0, 0.1).await;
 Detecting new markets:
 
 ```rust
-use sdktrader_monitoring::{MarketDiffDetector, MarketInfo};
+use tradersdk_monitoring::{MarketDiffDetector, MarketInfo};
 
 let mut detector = MarketDiffDetector::new();
 detector.load_initial(fetch_markets().await?);
@@ -174,7 +174,7 @@ for change in detector.detect_changes(fetch_markets().await?) {
 Bindings are built with PyO3 and require Python 3.9+.
 
 ```bash
-cd crates/sdktrader-python
+cd crates/tradersdk-python
 maturin develop
 ```
 

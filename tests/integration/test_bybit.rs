@@ -1,6 +1,6 @@
 //! Integration tests for Bybit exchange.
 
-use sdktrader::models::MarketType;
+use tradersdk::models::MarketType;
 
 mod public_spot {
     use super::*;

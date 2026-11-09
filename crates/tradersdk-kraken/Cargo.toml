@@ -1,0 +1,28 @@
+[package]
+name = "tradersdk-kraken"
+version = "0.1.0"
+edition = "2021"
+description = "Kraken exchange adapter for tradersdk"
+
+[dependencies]
+tradersdk-core = { path = "../tradersdk-core" }
+tokio = { version = "1.35", features = ["full"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.21"
+tokio-tungstenite = { version = "0.21", features = ["rustls-tls-native-roots"] }
+futures-util = "0.3"
+async-trait = "0.1"
+rust_decimal = { version = "1.33", features = ["serde", "serde-with-str"] }
+tracing = "0.1"
+uuid = { version = "1.6", features = ["v4"] }
+governor = "0.6"
+regex = "1.10"
+urlencoding = "2.1"

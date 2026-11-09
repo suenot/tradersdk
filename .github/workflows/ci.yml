@@ -42,4 +42,4 @@ jobs:
 
       # The point of the feature flags is that one exchange compiles alone.
       - name: Build with only bybit
-        run: cargo check -p sdktrader --no-default-features --features bybit
+        run: cargo check -p tradersdk --no-default-features --features bybit

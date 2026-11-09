@@ -23,7 +23,7 @@ fi
 
 # Regenerate schemas
 cd "$ROOT_DIR"
-cargo run -p sdktrader-schema-export --features json-schema -- "$SCHEMA_DIR" 2>/dev/null
+cargo run -p tradersdk-schema-export --features json-schema -- "$SCHEMA_DIR" 2>/dev/null
 
 # Compare
 DIFF=$(diff -rq "$TEMP_DIR" "$SCHEMA_DIR" 2>/dev/null || true)

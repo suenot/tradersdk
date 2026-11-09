@@ -1,0 +1,21 @@
+[package]
+name = "tradersdk-api"
+version = "0.1.0"
+edition = "2021"
+description = "HTTP API server for tradersdk — exchange adapter testing"
+
+[[bin]]
+name = "tradersdk-api"
+path = "src/main.rs"
+
+[dependencies]
+tradersdk-core = { path = "../tradersdk-core" }
+tradersdk-providers = { path = "../tradersdk-providers" }
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

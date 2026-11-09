@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExchangeCapabilities",
-  "description": "What an exchange implementation can and cannot do.\n\nEach field represents a specific capability. Consumers should check capabilities before calling optional methods.\n\n# Example ```rust use sdktrader_core::models::capabilities::{ExchangeCapabilities, CapabilityStatus};\n\nlet caps = ExchangeCapabilities::default(); assert_eq!(caps.create_market_order, CapabilityStatus::Unknown); ```",
+  "description": "What an exchange implementation can and cannot do.\n\nEach field represents a specific capability. Consumers should check capabilities before calling optional methods.\n\n# Example ```rust use tradersdk_core::models::capabilities::{ExchangeCapabilities, CapabilityStatus};\n\nlet caps = ExchangeCapabilities::default(); assert_eq!(caps.create_market_order, CapabilityStatus::Unknown); ```",
   "type": "object",
   "required": [
     "cancel_all_orders",

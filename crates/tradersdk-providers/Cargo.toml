@@ -1,0 +1,61 @@
+[package]
+name = "tradersdk-providers"
+version = "0.1.0"
+edition = "2021"
+authors = ["suenot"]
+description = "Exchange provider registry for tradersdk — feature-gated re-exports of all exchange crates"
+license = "MIT"
+repository = "https://github.com/suenot/tradersdk"
+homepage = "https://tradersdk.com"
+
+[features]
+default = ["full"]
+
+# All available exchanges
+full = ["bybit", "bingx", "binance", "gate", "okx", "bitget", "mexc", "hyperliquid", "kraken", "kucoin", "deribit", "phemex", "xt", "htx", "bitfinex", "bitmart", "coinex", "lbank", "weex", "ourbit"]
+
+# Individual exchanges (add new exchange crates here)
+bybit = ["dep:tradersdk-bybit"]
+bingx = ["dep:tradersdk-bingx"]
+binance = ["dep:tradersdk-binance"]
+gate = ["dep:tradersdk-gate"]
+okx = ["dep:tradersdk-okx"]
+bitget = ["dep:tradersdk-bitget"]
+mexc = ["dep:tradersdk-mexc"]
+hyperliquid = ["dep:tradersdk-hyperliquid"]
+kraken = ["dep:tradersdk-kraken"]
+kucoin = ["dep:tradersdk-kucoin"]
+deribit = ["dep:tradersdk-deribit"]
+phemex = ["dep:tradersdk-phemex"]
+xt = ["dep:tradersdk-xt"]
+htx = ["dep:tradersdk-htx"]
+bitfinex = ["dep:tradersdk-bitfinex"]
+bitmart = ["dep:tradersdk-bitmart"]
+coinex = ["dep:tradersdk-coinex"]
+lbank = ["dep:tradersdk-lbank"]
+weex = ["dep:tradersdk-weex"]
+ourbit = ["dep:tradersdk-ourbit"]
+
+[dependencies]
+tradersdk-core = { path = "../tradersdk-core" }
+tradersdk-bybit = { path = "../tradersdk-bybit", optional = true }
+tradersdk-bingx = { path = "../tradersdk-bingx", optional = true }
+tradersdk-binance = { path = "../tradersdk-binance", optional = true }
+tradersdk-gate = { path = "../tradersdk-gate", optional = true }
+tradersdk-okx = { path = "../tradersdk-okx", optional = true }
+tradersdk-bitget = { path = "../tradersdk-bitget", optional = true }
+tradersdk-mexc = { path = "../tradersdk-mexc", optional = true }
+tradersdk-hyperliquid = { path = "../tradersdk-hyperliquid", optional = true }
+tradersdk-kraken = { path = "../tradersdk-kraken", optional = true }
+tradersdk-kucoin = { path = "../tradersdk-kucoin", optional = true }
+tradersdk-deribit = { path = "../tradersdk-deribit", optional = true }
+tradersdk-phemex = { path = "../tradersdk-phemex", optional = true }
+tradersdk-xt = { path = "../tradersdk-xt", optional = true }
+tradersdk-htx = { path = "../tradersdk-htx", optional = true }
+tradersdk-bitfinex = { path = "../tradersdk-bitfinex", optional = true }
+tradersdk-bitmart = { path = "../tradersdk-bitmart", optional = true }
+tradersdk-coinex = { path = "../tradersdk-coinex", optional = true }
+tradersdk-lbank = { path = "../tradersdk-lbank", optional = true }
+tradersdk-weex = { path = "../tradersdk-weex", optional = true }
+tradersdk-ourbit = { path = "../tradersdk-ourbit", optional = true }
+anyhow = "1.0"

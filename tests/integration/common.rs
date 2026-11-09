@@ -1,9 +1,9 @@
 //! Common utilities for integration tests.
 
-use sdktrader::exchanges::{create_trader, ExchangeCredentials, ExchangeTrader};
-use sdktrader::models::MarketType;
 use std::env;
 use std::sync::Arc;
+use tradersdk::exchanges::{create_trader, ExchangeCredentials, ExchangeTrader};
+use tradersdk::models::MarketType;
 
 /// Test configuration loaded from environment variables.
 #[derive(Debug, Clone)]
@@ -233,7 +233,7 @@ macro_rules! private_endpoint_tests {
         #[cfg(feature = "live")]
         async fn test_set_leverage() {
             // Only for swap/futures
-            if $market_type != sdktrader::models::MarketType::Swap {
+            if $market_type != tradersdk::models::MarketType::Swap {
                 return;
             }
 
@@ -294,7 +294,7 @@ macro_rules! websocket_tests {
         #[cfg(feature = "integration")]
         async fn test_ws_ticker() {
             // Only for swap/futures (ticker with OI/funding)
-            if $market_type != sdktrader::models::MarketType::Swap {
+            if $market_type != tradersdk::models::MarketType::Swap {
                 return;
             }
 
@@ -316,7 +316,7 @@ macro_rules! websocket_tests {
 macro_rules! order_dryrun_tests {
     ($exchange:expr, $market_type:expr) => {
         use super::common::{create_test_trader, get_test_symbol};
-        use sdktrader::models::OrderSide;
+        use tradersdk::models::OrderSide;
 
         #[tokio::test]
         #[cfg(feature = "integration")]

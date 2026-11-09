@@ -1,5 +1,5 @@
 //! Core data models for trading.
 //!
-//! Re-exported from sdktrader-core crate.
+//! Re-exported from tradersdk-core crate.
 
-pub use sdktrader_core::models::*;
+pub use tradersdk_core::models::*;
